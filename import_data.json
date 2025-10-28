@@ -1,0 +1,1579 @@
+{
+  "academic_units": [
+    {
+      "name": "Escola Politécnica",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": null,
+      "cienciaUnidade": "2025-08-04 00:00:00",
+      "listaSoftwares": "2025-10-08 00:00:00",
+      "criacao": "2025-10-09 00:00:00",
+      "testeDeploy": "2025-10-14 00:00:00",
+      "homologacao": null,
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "name": "Escola de Negócios",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": null,
+      "cienciaUnidade": "2025-09-02 00:00:00",
+      "listaSoftwares": "2025-09-02 00:00:00",
+      "criacao": "2025-09-03 00:00:00",
+      "testeDeploy": "2025-09-01 00:00:00",
+      "homologacao": "2025-10-20 00:00:00",
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "name": "ECD Famecos",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": "2025-09-02 00:00:00",
+      "listaSoftwares": "2025-09-25 00:00:00",
+      "criacao": "2025-10-01 00:00:00",
+      "testeDeploy": "2025-10-07 00:00:00",
+      "homologacao": "2025-10-23 00:00:00",
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "name": "LIVING",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": null,
+      "listaSoftwares": "2025-10-23 00:00:00",
+      "criacao": null,
+      "testeDeploy": null,
+      "homologacao": null,
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "name": "Escola de Humanidades",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": null,
+      "listaSoftwares": null,
+      "criacao": null,
+      "testeDeploy": null,
+      "homologacao": null,
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "name": "Escola de Ciências e Saúde da Vida",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": "2025-09-11 00:00:00",
+      "listaSoftwares": "2025-09-11 00:00:00",
+      "criacao": "2025-09-12 00:00:00",
+      "testeDeploy": "2025-09-16 00:00:00",
+      "homologacao": "2025-10-21 00:00:00",
+      "aprovacao": null,
+      "implantacao": null
+    }
+  ],
+  "laboratories": [
+    {
+      "predio": "P30A",
+      "sala": 212
+    },
+    {
+      "predio": "P30A",
+      "sala": 213
+    },
+    {
+      "predio": "P30A",
+      "sala": 214
+    },
+    {
+      "predio": "P30A",
+      "sala": 215
+    },
+    {
+      "predio": "P30A",
+      "sala": 313
+    },
+    {
+      "predio": "P30A",
+      "sala": 314
+    },
+    {
+      "predio": "P30A",
+      "sala": 315
+    },
+    {
+      "predio": "P30A",
+      "sala": 317
+    },
+    {
+      "predio": "P30A",
+      "sala": 318
+    },
+    {
+      "predio": "P30A",
+      "sala": 320
+    },
+    {
+      "predio": "P30B",
+      "sala": 101
+    },
+    {
+      "predio": "P30F",
+      "sala": "201.02"
+    },
+    {
+      "predio": "P30F",
+      "sala": "211.02"
+    },
+    {
+      "predio": "P30F",
+      "sala": "211.03"
+    },
+    {
+      "predio": "P30F",
+      "sala": "212.01"
+    },
+    {
+      "predio": "P30F",
+      "sala": "212.02"
+    },
+    {
+      "predio": "P30F",
+      "sala": "212.03"
+    },
+    {
+      "predio": "P30F",
+      "sala": "212.04"
+    },
+    {
+      "predio": "P32",
+      "sala": "211.04"
+    },
+    {
+      "predio": "P32",
+      "sala": 301
+    },
+    {
+      "predio": "P32",
+      "sala": 309
+    },
+    {
+      "predio": "P32",
+      "sala": 310
+    },
+    {
+      "predio": "P32",
+      "sala": 311
+    },
+    {
+      "predio": "P32",
+      "sala": 312
+    },
+    {
+      "predio": "P32",
+      "sala": 318
+    },
+    {
+      "predio": "P32",
+      "sala": 401
+    },
+    {
+      "predio": "P32",
+      "sala": 409
+    },
+    {
+      "predio": "P32",
+      "sala": 410
+    },
+    {
+      "predio": "P32",
+      "sala": 411
+    },
+    {
+      "predio": "P32",
+      "sala": 412
+    },
+    {
+      "predio": "P32",
+      "sala": 418
+    },
+    {
+      "predio": "P32",
+      "sala": "Note"
+    }
+  ],
+  "lab_details": {
+    "P94 - IDEIA": {
+      "name": "P94 - IDEIA",
+      "softwares": [
+        {
+          "name": 2026,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2026,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "5.3",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 8,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 7,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 5,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2023,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Pago",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P07A - 8GB": {
+      "name": "P07A - 8GB",
+      "softwares": [
+        {
+          "name": 2018,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2025,
+          "version": "Gratuito",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P07A - 16gb": {
+      "name": "P07A - 16gb",
+      "softwares": [
+        {
+          "name": 2025,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2025,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "4.3",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2018,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "2025.1",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P50A - Notebook": {
+      "name": "P50A - Notebook",
+      "softwares": [
+        {
+          "name": "Graph",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Google Chrome",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Jamovi",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Jasp Statistics",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Microsoft Office",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft Project",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft PowerBI",
+          "version": "Mais recente",
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft Visio",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Python",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "R for Windows",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "RStudio",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "SPSS Statistics",
+          "version": 17,
+          "license": "Pago"
+        },
+        {
+          "name": "Visual Studio Code",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        }
+      ],
+      "features": {},
+      "predio": "Bloco",
+      "bloco": "Sala",
+      "sala": null,
+      "nomeContato": "E-mail",
+      "emailContato": "Ramal",
+      "ramalContato": null
+    },
+    "P50A914 - 917": {
+      "name": "P50A914 - 917",
+      "softwares": [
+        {
+          "name": "GeoDa",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Gempack + Fortan",
+          "version": "11 ou 12",
+          "license": "Pago"
+        },
+        {
+          "name": "GNU Octave",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Google Chrome",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Jamovi",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Jasp Statistics",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Make Money",
+          "version": 10,
+          "license": "Pago"
+        },
+        {
+          "name": "Mendeley Desktop",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Microsoft Office",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft Project",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft PowerBI",
+          "version": "Mais recente",
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft Visio",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Minitab",
+          "version": 17,
+          "license": "Pago"
+        },
+        {
+          "name": "Mozilla Firefox",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Open LCA",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Orange",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Python",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "R for Windows",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "RStudio",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Safe Exam Browser",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Scilab",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "SPSS Statistics",
+          "version": 17,
+          "license": "Pago"
+        },
+        {
+          "name": "Stata",
+          "version": 12,
+          "license": "Pago"
+        },
+        {
+          "name": "Stata",
+          "version": 18,
+          "license": "Pago"
+        },
+        {
+          "name": "Zotero",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        }
+      ],
+      "features": {},
+      "predio": "Bloco",
+      "bloco": "Sala",
+      "sala": null,
+      "nomeContato": "E-mail",
+      "emailContato": "Ramal",
+      "ramalContato": null
+    },
+    "P50A913": {
+      "name": "P50A913",
+      "softwares": [
+        {
+          "name": "Dominio",
+          "version": "Mais recente",
+          "license": "Pago"
+        },
+        {
+          "name": "E-Views",
+          "version": 13,
+          "license": "Pago"
+        },
+        {
+          "name": "EndNote",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "GeoDa",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Gempack + Fortan",
+          "version": 11,
+          "license": "Pago"
+        },
+        {
+          "name": "GNU Octave",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Google Chrome",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Grap",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Jamovi",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Jasp Statistics",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Make Money",
+          "version": 10,
+          "license": "Pago"
+        },
+        {
+          "name": "Mendeley Desktop",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Microsoft Office",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft Project",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft PowerBI",
+          "version": "Mais recente",
+          "license": "Pago"
+        },
+        {
+          "name": "Microsoft Visio",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Minitab",
+          "version": 17,
+          "license": "Pago"
+        },
+        {
+          "name": "Mozilla Firefox",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Open LCA",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Orange",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Python",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "R for Windows",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "RStudio",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Safe Exam Browser",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Scilab",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "SPSS Statistics",
+          "version": 17,
+          "license": "Pago"
+        },
+        {
+          "name": "Stata",
+          "version": 12,
+          "license": "Pago"
+        },
+        {
+          "name": "Stata",
+          "version": 18,
+          "license": "Pago"
+        },
+        {
+          "name": "Vs code",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Zotero",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        }
+      ],
+      "features": {},
+      "predio": "Bloco",
+      "bloco": "Sala",
+      "sala": null,
+      "nomeContato": "E-mail",
+      "emailContato": "Ramal",
+      "ramalContato": null
+    },
+    "P11A311": {
+      "name": "P11A311",
+      "softwares": [
+        {
+          "name": "MEGA",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Microsoft Office",
+          "version": 2019,
+          "license": "Pago"
+        },
+        {
+          "name": "Molegro Virtual Docker",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Mozilla Firefox",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "QGIS",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "R",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "R Studio",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "SniffyPro",
+          "version": "Mais recente",
+          "license": "Pago"
+        },
+        {
+          "name": "SPSS",
+          "version": 17,
+          "license": "Pago"
+        },
+        {
+          "name": "VLC Media Player",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "Vortex10",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        },
+        {
+          "name": "G*Power",
+          "version": "Mais recente",
+          "license": "Gratuito"
+        }
+      ],
+      "features": {},
+      "predio": "Bloco",
+      "bloco": "Sala",
+      "sala": null,
+      "nomeContato": "E-mail",
+      "emailContato": "Ramal",
+      "ramalContato": null
+    },
+    " P81A902": {
+      "name": " P81A902",
+      "softwares": [],
+      "features": {}
+    },
+    "P30F211 - 212": {
+      "name": "P30F211 - 212",
+      "softwares": [
+        {
+          "name": 2026,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2026,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2026,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 11,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 12,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "22.5.0",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "4.00.10",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "45.3.0",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 48,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "R2012B",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 17,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 6,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2023,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 17,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 26,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P30A212 - 215": {
+      "name": "P30A212 - 215",
+      "softwares": [
+        {
+          "name": 2025,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2025,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 11,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 12,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "3.0.5.0",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Vide comentário",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Vide comentário",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "22.5.0",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "4.00.10",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "45.3.0",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "1.16.2",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "1.54",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "R2012B",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 17,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "9.7.1.1",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 6,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 23,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "7.8 SP2",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "12.0.3",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "2024.0.0",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2024,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "17.0",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 7,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2021,
+          "version": "Gratuito",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P30D- S1.02-05": {
+      "name": "P30D- S1.02-05",
+      "softwares": [
+        {
+          "name": 48,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "R2012B",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P30F201": {
+      "name": "P30F201",
+      "softwares": [
+        {
+          "name": 12,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2025,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2019,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 2025,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 2023,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": 25,
+          "version": "Pago",
+          "license": null
+        }
+      ],
+      "features": {}
+    },
+    "P30A313 - 320": {
+      "name": "P30A313 - 320",
+      "softwares": [
+        {
+          "name": "1.10.1",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 7,
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "R2012b",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "7.1",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "9.7.11",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "3.9",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Atual",
+          "version": "Pago",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": 9,
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "Mais recente",
+          "version": "Gratuito",
+          "license": null
+        },
+        {
+          "name": "14.7",
+          "version": "Pago",
+          "license": null
+        }
+      ],
+      "features": {}
+    }
+  }
+}
