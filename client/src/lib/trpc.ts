@@ -1,4 +1,5 @@
 import { createTRPCReact } from "@trpc/react-query";
-import type { AppRouter } from "../../../server/routers";
 
-export const trpc = createTRPCReact<AppRouter>();
+// Em modo 100% local, não precisamos do tipo AppRouter do backend.
+// Para simplificar a tipagem e evitar erros, expomos `trpc` como any.
+export const trpc: any = createTRPCReact<any>();

@@ -8,15 +8,27 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import DataManagement from "./pages/DataManagement";
+import Login from "./pages/Login";
+import { useAuth } from "./_core/hooks/useAuth";
+import { isLocalMode } from "./lib/env";
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType<any> }) {
+  const { isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
+  if (loading) return null;
+  if (isLocalMode() && !isAuthenticated) return null; // fará redirect via useAuth
+  // @ts-ignore
+  return <Component/>;
+}
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      <Route path="/login" component={Login} />
       <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/data-management" component={DataManagement} />
+      <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+      <Route path="/data-management" component={() => <ProtectedRoute component={DataManagement} />} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

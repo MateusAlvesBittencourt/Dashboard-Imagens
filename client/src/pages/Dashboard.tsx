@@ -10,16 +10,17 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { isLocalMode } from "@/lib/env";
 import BackButton from "@/components/BackButton";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"units" | "labs">("units");
-  // Ler ?tab=units|labs
+  const [activeTab, setActiveTab] = useState<"units" | "labs" | "implementation">("units");
+  // Ler ?tab=units|labs|implementation
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
       const tab = url.searchParams.get('tab');
-      if (tab === 'units' || tab === 'labs') setActiveTab(tab);
+      if (tab === 'units' || tab === 'labs' || tab === 'implementation') setActiveTab(tab);
     } catch {}
   }, []);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -30,6 +31,11 @@ export default function Dashboard() {
   const [softwareSearch, setSoftwareSearch] = useState("");
   const [softwareLicenseFilter, setSoftwareLicenseFilter] = useState<'Todos' | 'Gratuito' | 'Pago'>('Todos');
   const [softwareSort, setSoftwareSort] = useState<{ key: 'softwareName' | 'version' | 'license'; dir: 'asc' | 'desc' }>({ key: 'softwareName', dir: 'asc' });
+  // Máquinas
+  const [machineDialogLabId, setMachineDialogLabId] = useState<number | null>(null);
+  const [machineEditMode, setMachineEditMode] = useState(false);
+  const [machineEdits, setMachineEdits] = useState<Record<number, { hostname: string; patrimonio: string; formatted: boolean }>>({});
+  const [machineSearch, setMachineSearch] = useState("");
 
   // Queries
   const { data: units, isLoading: unitsLoading, refetch: refetchUnits } = trpc.academicUnits.list.useQuery();
@@ -38,7 +44,12 @@ export default function Dashboard() {
     { laboratoryId: softwareDialogLabId ?? 0 },
     { enabled: softwareDialogLabId != null }
   );
-  const activeLab = useMemo(() => labs?.find(l => l.id === softwareDialogLabId) ?? null, [labs, softwareDialogLabId]);
+  const { data: labMachines } = trpc.machines.getByLaboratory.useQuery(
+    { laboratoryId: machineDialogLabId ?? 0 },
+    { enabled: machineDialogLabId != null }
+  );
+  const activeSoftwareLab = useMemo(() => labs?.find((l: any) => l.id === softwareDialogLabId) ?? null, [labs, softwareDialogLabId]);
+  const activeMachineLab = useMemo(() => labs?.find((l: any) => l.id === machineDialogLabId) ?? null, [labs, machineDialogLabId]);
   const displaySoftware = useMemo(() => {
     let items = (labSoftware as any[]) ?? [];
     // filtro de busca
@@ -86,6 +97,27 @@ export default function Dashboard() {
       }
     },
   });
+  const updateMachineMutation = trpc.machines.update.useMutation({
+    onSuccess: async () => {
+      if (machineDialogLabId != null) {
+        await utils.machines.getByLaboratory.invalidate({ laboratoryId: machineDialogLabId });
+      }
+    },
+  });
+  const createMachineMutation = trpc.machines.create.useMutation({
+    onSuccess: async () => {
+      if (machineDialogLabId != null) {
+        await utils.machines.getByLaboratory.invalidate({ laboratoryId: machineDialogLabId });
+      }
+    },
+  });
+  const deleteMachineMutation = trpc.machines.delete.useMutation({
+    onSuccess: async () => {
+      if (machineDialogLabId != null) {
+        await utils.machines.getByLaboratory.invalidate({ laboratoryId: machineDialogLabId });
+      }
+    },
+  });
 
   // Mutations
   const updateUnitMutation = trpc.academicUnits.update.useMutation({
@@ -106,21 +138,36 @@ export default function Dashboard() {
     onSuccess: () => {
       refetchLabs();
       setEditingId(null);
+      toast.success('Laboratório atualizado');
     },
+    onError: (e: any) => {
+      console.error(e);
+      toast.error('Falha ao atualizar laboratório');
+    }
   });
 
   const deleteLabMutation = trpc.laboratories.delete.useMutation({
     onSuccess: () => {
       refetchLabs();
       setEditingId(null);
+      toast.success('Laboratório removido');
     },
+    onError: (e: any) => {
+      console.error(e);
+      toast.error('Falha ao remover laboratório');
+    }
   });
 
   const createLabMutation = trpc.laboratories.create.useMutation({
     onSuccess: () => {
       refetchLabs();
       setIsDialogOpen(false);
+      toast.success('Laboratório criado com sucesso');
     },
+    onError: (e: any) => {
+      console.error(e);
+      toast.error('Falha ao criar laboratório');
+    }
   });
 
   const handleDateChange = (value: string) => {
@@ -210,7 +257,7 @@ export default function Dashboard() {
               </div>
             ) : units && units.length > 0 ? (
               <div className="grid gap-4">
-                {units.map((unit) => (
+                {units.map((unit: any) => (
                   <Card key={unit.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
@@ -344,10 +391,10 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold text-slate-900">Laboratórios</h2>
-              {user && (
+              {(user || isLocalMode()) && (
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="gap-2">
+                    <Button className="gap-2" disabled={createLabMutation.isPending}>
                       <Plus size={18} />
                       Novo Laboratório
                     </Button>
@@ -380,7 +427,9 @@ export default function Dashboard() {
                       <Input name="nomeContato" placeholder="Nome do Contato" />
                       <Input name="emailContato" placeholder="Email do Contato" type="email" />
                       <Input name="ramalContato" placeholder="Ramal do Contato" />
-                      <Button type="submit" className="w-full">Adicionar</Button>
+                      <Button type="submit" className="w-full" disabled={createLabMutation.isPending}>
+                        {createLabMutation.isPending ? 'Adicionando...' : 'Adicionar'}
+                      </Button>
                     </form>
                   </DialogContent>
                 </Dialog>
@@ -393,7 +442,7 @@ export default function Dashboard() {
               </div>
             ) : labs && labs.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {labs.map((lab) => (
+                {labs.map((lab: any) => (
                   <Card key={lab.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
@@ -498,8 +547,8 @@ export default function Dashboard() {
               </Card>
             )}
           </div>
-        )}
-        {/* Dialog de Softwares por Laboratório */}
+    )}
+    {/* Dialog de Softwares por Laboratório */}
         <Dialog open={softwareDialogLabId != null} onOpenChange={(open) => {
           if (!open) {
             setSoftwareDialogLabId(null);
@@ -512,7 +561,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <DialogTitle>
-                    Softwares {activeLab ? `- Prédio ${activeLab.predio} - Sala ${activeLab.sala}` : ''}
+                    Softwares {activeSoftwareLab ? `- Prédio ${activeSoftwareLab.predio} - Sala ${activeSoftwareLab.sala}` : ''}
                   </DialogTitle>
                   <DialogDescription>
                     Lista de softwares do laboratório selecionado • {displaySoftware?.length ?? 0} itens
@@ -672,6 +721,219 @@ export default function Dashboard() {
                   <option value="Gratuito">Gratuito</option>
                   <option value="Pago">Pago</option>
                 </select>
+                <Button type="submit">Adicionar</Button>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+        {/* Implementation Tab */}
+        {activeTab === 'implementation' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-slate-900">Implementação • Estações por Laboratório</h2>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+              <div className="flex-1 min-w-[260px]">
+                <label className="text-xs text-slate-600">Selecione um laboratório</label>
+                <select
+                  className="mt-1 w-full border rounded px-2 py-2"
+                  onChange={(e) => {
+                    const id = Number(e.target.value || 0);
+                    setMachineDialogLabId(Number.isFinite(id) && id > 0 ? id : null);
+                  }}
+                  value={machineDialogLabId ?? ''}
+                >
+                  <option value="">-- Escolha --</option>
+                  {(labs as any[] | undefined)?.map((l) => (
+                    <option key={l.id} value={l.id}>{`Prédio ${l.predio} - Sala ${l.sala}`}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Button
+                  disabled={machineDialogLabId == null}
+                  onClick={() => {
+                    // apenas garante que o diálogo será renderizado; state já está setado pelo select
+                    if (machineDialogLabId == null) return;
+                  }}
+                >
+                  Gerenciar Estações
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dialog de Máquinas por Laboratório */}
+        <Dialog open={machineDialogLabId != null} onOpenChange={(open) => {
+          if (!open) {
+            setMachineDialogLabId(null);
+            setMachineEditMode(false);
+            setMachineEdits({});
+          }
+        }}>
+          <DialogContent className="max-w-none w-[60vw] sm:max-w-[98vw] md:max-w-[98vw] lg:max-w-[98vw] xl:max-w-[98vw] max-h-[90vh] p-0 overflow-hidden">
+            <DialogHeader className="px-6 py-4 border-b sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>
+                    Estações {activeMachineLab ? `- Prédio ${activeMachineLab.predio} - Sala ${activeMachineLab.sala}` : ''}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Lista de estações do laboratório selecionado • {labMachines?.length ?? 0} itens
+                  </DialogDescription>
+                </div>
+                {(user || isLocalMode()) && (
+                  <Button size="sm" variant={machineEditMode ? 'secondary' : 'default'} onClick={() => {
+                    setMachineEditMode((v) => {
+                      const next = !v;
+                      if (next && labMachines) {
+                        const map: Record<number, any> = {};
+                        for (const m of (labMachines as any[])) {
+                          map[m.id] = { hostname: m.hostname ?? '', patrimonio: m.patrimonio ?? '', formatted: Boolean(m.formatted) };
+                        }
+                        setMachineEdits(map);
+                      } else {
+                        setMachineEdits({});
+                      }
+                      return next;
+                    });
+                  }}>
+                    {machineEditMode ? 'Concluir edição' : 'Editar'}
+                  </Button>
+                )}
+              </div>
+            </DialogHeader>
+            <div className="overflow-auto px-6 py-4 space-y-3" style={{ maxHeight: 'calc(90vh - 72px)' }}>
+              {/* Barra de busca */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Input
+                  placeholder="Buscar por descrição ou patrimônio"
+                  value={machineSearch}
+                  onChange={(e) => setMachineSearch(e.target.value)}
+                />
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => { setMachineSearch(''); }}>Limpar busca</Button>
+                </div>
+              </div>
+              <table className="w-full text-sm table-auto">
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="text-left border-b">
+                    <th className="py-2 pr-3 w-1/5">Patrimônio</th>
+                    <th className="py-2 pr-3 w-2/5">Descrição</th>
+                    <th className="py-2 pr-3 w-1/5">Formatada</th>
+                    {machineEditMode && <th className="py-2 w-[140px]">Ações</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(labMachines as any[] | undefined)?.filter(m => {
+                    const q = machineSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return `${m.hostname ?? ''} ${m.patrimonio ?? ''}`.toLowerCase().includes(q);
+                  }).map((m: any) => {
+                    if (!machineEditMode) {
+                      return (
+                        <tr key={m.id} className="border-b last:border-0 odd:bg-slate-50">
+                          <td className="py-2 pr-3 break-words whitespace-normal">{m.patrimonio ?? '—'}</td>
+                          <td className="py-2 pr-3 break-words whitespace-normal">{m.hostname}</td>
+                          <td className="py-2 pr-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${m.formatted ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
+                              {m.formatted ? 'Sim' : 'Não'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    const edit = machineEdits[m.id] ?? { hostname: m.hostname ?? '', patrimonio: m.patrimonio ?? '', formatted: Boolean(m.formatted) };
+                    return (
+                      <tr key={m.id} className="border-b last:border-0 odd:bg-slate-50">
+                        <td className="py-2 pr-3">
+                          <input
+                            className="w-full border rounded px-2 py-1"
+                            value={edit.patrimonio}
+                            onChange={(e) => setMachineEdits(prev => ({ ...prev, [m.id]: { ...edit, patrimonio: e.target.value } }))}
+                          />
+                        </td>
+                        <td className="py-2 pr-3">
+                          <input
+                            className="w-full border rounded px-2 py-1"
+                            value={edit.hostname}
+                            onChange={(e) => setMachineEdits(prev => ({ ...prev, [m.id]: { ...edit, hostname: e.target.value } }))}
+                          />
+                        </td>
+                        <td className="py-2 pr-3">
+                          <label className="inline-flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={edit.formatted}
+                              onChange={(e) => setMachineEdits(prev => ({ ...prev, [m.id]: { ...edit, formatted: e.target.checked } }))}
+                            />
+                            Formatada
+                          </label>
+                        </td>
+                        <td className="py-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const cur = machineEdits[m.id];
+                              const payload: any = {};
+                              if (cur) {
+                                payload.hostname = cur.hostname; // descrição
+                                payload.patrimonio = cur.patrimonio || null;
+                                payload.formatted = Boolean(cur.formatted);
+                                if (cur.formatted && !m.formatted) {
+                                  payload.formattedAt = new Date().toISOString();
+                                }
+                                if (!cur.formatted) {
+                                  payload.formattedAt = null;
+                                }
+                              }
+                              updateMachineMutation.mutate({ id: m.id, data: payload });
+                            }}
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteMachineMutation.mutate({ id: m.id })}
+                          >
+                            Remover
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {(!labMachines || labMachines.length === 0) && (
+                    <tr>
+                      <td colSpan={4} className="py-6 text-center text-slate-500">Nenhuma estação cadastrada</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {(user || isLocalMode()) && machineEditMode && machineDialogLabId != null && (
+              <form
+                className="px-6 pb-6 mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2 border-t pt-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget as HTMLFormElement);
+                  const patrimonio = (fd.get('new_patrimonio') as string)?.trim();
+                  const descricao = (fd.get('new_descricao') as string)?.trim();
+                  if (!descricao) return;
+                  createMachineMutation.mutate({
+                    laboratoryId: machineDialogLabId,
+                    hostname: descricao,
+                    patrimonio: patrimonio || null,
+                    formatted: false,
+                    formattedAt: null,
+                  } as any);
+                  (e.currentTarget as HTMLFormElement).reset();
+                }}
+              >
+                <Input name="new_patrimonio" placeholder="Patrimônio" />
+                <Input name="new_descricao" placeholder="Descrição" required />
+                <div></div>
                 <Button type="submit">Adicionar</Button>
               </form>
             )}

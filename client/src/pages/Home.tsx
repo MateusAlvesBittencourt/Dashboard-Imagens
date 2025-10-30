@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Database, Shield } from "lucide-react";
+import { BarChart3, Database, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Home() {
@@ -52,15 +52,7 @@ export default function Home() {
                 Aqui você pode gerenciar o cronograma de implementação de imagens das unidades acadêmicas e os laboratórios da instituição.
               </p>
 
-              {/* Primary CTA */}
-              <Button
-                size="lg"
-                onClick={() => setLocation("/dashboard")}
-                className="mb-8 gap-2"
-              >
-                <BarChart3 size={20} />
-                Acessar Dashboard
-              </Button>
+              {/* Primary CTA removido a pedido: botão 'Acessar Dashboard' */}
             </div>
 
             {/* Navigation Links */}
@@ -82,7 +74,7 @@ export default function Home() {
             </div>
 
             {/* Features Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/dashboard?tab=units')}>
                 <CardHeader>
                   <BarChart3 className="w-8 h-8 text-indigo-600 mb-2" />
@@ -117,17 +109,21 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              {/* Card de Gmail removido */}
-
-              <Card className="hover:shadow-lg transition-shadow">
+              {/* Card de Implementação */}
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/dashboard?tab=implementation')}>
                 <CardHeader>
-                  <Shield className="w-8 h-8 text-purple-600 mb-2" />
-                  <CardTitle className="text-lg">Segurança</CardTitle>
+                  <CheckCircle2 className="w-8 h-8 text-green-600 mb-2" />
+                  <CardTitle className="text-lg">Implementação</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600 text-sm">
-                    Controle de acesso com autenticação segura e histórico de alterações.
+                    Acompanhe e gerencie a fase de implantação do cronograma das unidades.
                   </p>
+                  <div className="mt-4">
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setLocation('/dashboard?tab=implementation'); }}>
+                      Ir para Implementação
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -167,7 +163,7 @@ export default function Home() {
               </p>
               <Button
                 size="lg"
-                onClick={() => window.location.href = "/api/oauth/login"}
+                onClick={() => setLocation('/login')}
                 className="gap-2"
               >
                 Fazer Login

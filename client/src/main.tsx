@@ -22,6 +22,11 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
+  // Em modo local não usamos OAuth; redireciona para /login
+  if (isLocalMode()) {
+    window.location.href = "/login";
+    return;
+  }
   window.location.href = getLoginUrl();
 };
 
@@ -42,8 +47,16 @@ queryClient.getMutationCache().subscribe(event => {
 });
 
 // Link local: roteia chamadas para o localdb
+const hasLocalAuth = () => {
+  try {
+    return Boolean(localStorage.getItem('local-auth'));
+  } catch {
+    return false;
+  }
+};
+
 const localLink: TRPCLink<any> = () => ({ op, next }) => {
-  if (!isLocalMode()) return next(op);
+  if (!(isLocalMode() || hasLocalAuth())) return next(op);
   return observable((observer: any) => {
     try {
       const { path, input, type } = op;
@@ -65,9 +78,17 @@ const localLink: TRPCLink<any> = () => ({ op, next }) => {
           observer.complete();
           return;
         }
+        if (path === 'machines.getByLaboratory') {
+          const { laboratoryId } = (input as any) ?? {};
+          observer.next({ result: { data: localdb.listMachinesByLab(Number(laboratoryId)) as any } });
+          observer.complete();
+          return;
+        }
         if (path === 'auth.me') {
-          // Usuário fake em modo local
-          observer.next({ result: { data: { id: 0, name: 'Local User', openId: 'local', role: 'admin' } as any } });
+          // Retorna usuário salvo localmente (se existir)
+          const stored = localStorage.getItem('local-auth');
+          const user = stored ? JSON.parse(stored) : null;
+          observer.next({ result: { data: user as any } });
           observer.complete();
           return;
         }
@@ -135,7 +156,31 @@ const localLink: TRPCLink<any> = () => ({ op, next }) => {
           observer.complete();
           return;
         }
+        if (path === 'machines.create') {
+          const created = localdb.createMachine(input as any);
+          observer.next({ result: { data: created as any } });
+          observer.complete();
+          return;
+        }
+        if (path === 'machines.update') {
+          const anyInput = input as any;
+          const id = anyInput.id;
+          const patch = anyInput.data ?? { ...anyInput };
+          delete (patch as any).id;
+          const updated = localdb.updateMachine(id, patch);
+          observer.next({ result: { data: updated as any } });
+          observer.complete();
+          return;
+        }
+        if (path === 'machines.delete') {
+          const { id } = (input as any) ?? {};
+          const ok = localdb.deleteMachine(Number(id));
+          observer.next({ result: { data: ok as any } });
+          observer.complete();
+          return;
+        }
         if (path === 'auth.logout') {
+          localStorage.removeItem('local-auth');
           observer.next({ result: { data: true as any } });
           observer.complete();
           return;

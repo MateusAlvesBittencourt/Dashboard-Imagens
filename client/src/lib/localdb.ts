@@ -35,12 +35,22 @@ export type LocalSoftwareInstallation = {
   license: string; // 'Pago' | 'Gratuito'
 };
 
+export type LocalMachine = {
+  id: number;
+  laboratoryId: number;
+  hostname: string; // ou nome da estação
+  patrimonio?: string | null; // asset tag
+  formatted: boolean; // se já foi formatada
+  formattedAt?: string | null; // ISO string da data/hora da formatação
+};
+
 const NS = 'imagens_dashboard_localdb_v1';
 
 type DBShape = {
   academicUnits: LocalAcademicUnit[];
   laboratories: LocalLaboratory[];
   softwareInstallations: LocalSoftwareInstallation[];
+  machines: LocalMachine[];
 };
 
 function loadDB(): DBShape {
@@ -50,6 +60,11 @@ function loadDB(): DBShape {
     // migração leve: garantir propriedade softwareInstallations
     if (!('softwareInstallations' in parsed)) {
       (parsed as any).softwareInstallations = [];
+      localStorage.setItem(NS, JSON.stringify(parsed));
+    }
+    // migração leve: garantir propriedade machines
+    if (!('machines' in parsed)) {
+      (parsed as any).machines = [];
       localStorage.setItem(NS, JSON.stringify(parsed));
     }
     return parsed as DBShape;
@@ -146,7 +161,7 @@ function loadDB(): DBShape {
     });
   }
 
-  const seeded: DBShape = { academicUnits: units, laboratories, softwareInstallations };
+  const seeded: DBShape = { academicUnits: units, laboratories, softwareInstallations, machines: [] };
   localStorage.setItem(NS, JSON.stringify(seeded));
   return seeded;
 }
@@ -210,10 +225,24 @@ export const localdb = {
       laboratories = laboratories.map(l => ({ ...l }));
     }
 
+    // Importar máquinas se vierem prontas
+    let machines: LocalMachine[] = [];
+    if (Array.isArray(raw.machines)) {
+      machines = raw.machines.map((m: any, idx: number) => ({
+        id: typeof m.id === 'number' ? m.id : (idx + 1),
+        laboratoryId: Number(m.laboratoryId),
+        hostname: String(m.hostname ?? ''),
+        patrimonio: m.patrimonio ?? null,
+        formatted: Boolean(m.formatted),
+        formattedAt: m.formattedAt ?? null,
+      }));
+    }
+
     const normalized: DBShape = {
       academicUnits,
       laboratories,
       softwareInstallations,
+      machines,
     };
     saveDB(normalized);
   },
@@ -263,6 +292,8 @@ export const localdb = {
     db.laboratories = db.laboratories.filter(l => l.id !== id);
     // apagar softwares relacionados
     db.softwareInstallations = db.softwareInstallations.filter(s => s.laboratoryId !== id);
+    // apagar máquinas relacionadas
+    db.machines = db.machines.filter(m => m.laboratoryId !== id);
     saveDB(db);
     return db.laboratories.length < before;
   },
@@ -270,6 +301,7 @@ export const localdb = {
       const db = loadDB();
       db.laboratories = [];
       db.softwareInstallations = [];
+      db.machines = [];
       saveDB(db);
     },
   // Software by Lab
@@ -299,5 +331,33 @@ export const localdb = {
     db.softwareInstallations = db.softwareInstallations.filter(s => s.id !== id);
     saveDB(db);
     return db.softwareInstallations.length < before;
+  },
+  // Machines by Lab
+  listMachinesByLab(laboratoryId: number): LocalMachine[] {
+    const db = loadDB();
+    return db.machines.filter(m => m.laboratoryId === laboratoryId);
+  },
+  createMachine(input: Omit<LocalMachine, 'id'>): LocalMachine {
+    const db = loadDB();
+    const id = (db.machines.at(-1)?.id ?? 0) + 1;
+    const machine = { id, ...input };
+    db.machines.push(machine);
+    saveDB(db);
+    return machine;
+  },
+  updateMachine(id: number, patch: Partial<Omit<LocalMachine, 'id'>>): LocalMachine | null {
+    const db = loadDB();
+    const idx = db.machines.findIndex(m => m.id === id);
+    if (idx === -1) return null;
+    db.machines[idx] = { ...db.machines[idx], ...patch };
+    saveDB(db);
+    return db.machines[idx];
+  },
+  deleteMachine(id: number): boolean {
+    const db = loadDB();
+    const before = db.machines.length;
+    db.machines = db.machines.filter(m => m.id !== id);
+    saveDB(db);
+    return db.machines.length < before;
   }
 };

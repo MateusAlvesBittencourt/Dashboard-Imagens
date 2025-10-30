@@ -13,10 +13,25 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
+  // 1) Sempre priorize o login local se existir
+  let initialLocalUser: any = null;
+  try {
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem("local-auth");
+      initialLocalUser = raw ? JSON.parse(raw) : null;
+      // espeficicamente pro manus runtime (se usado em outra parte do app)
+      localStorage.setItem(
+        "manus-runtime-user-info",
+        JSON.stringify(initialLocalUser)
+      );
+    }
+  } catch {}
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    // 2) Se já temos login local, não chame o backend
+    enabled: !initialLocalUser,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -27,6 +42,13 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logout = useCallback(async () => {
     try {
+      // Sempre limpe o login local
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("local-auth");
+          localStorage.removeItem("manus-runtime-user-info");
+        }
+      } catch {}
       await logoutMutation.mutateAsync();
     } catch (error: unknown) {
       if (
@@ -43,18 +65,30 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    if (isLocalMode()) {
-      // garantir que há um user fake disponível em modo local
-      const localUser = meQuery.data ?? { id: 0, name: 'Local User', openId: 'local', role: 'admin' } as any;
-      localStorage.setItem("manus-runtime-user-info", JSON.stringify(localUser));
+    // 3) Se existir usuário local, ele sempre vence (independente de VITE_LOCAL_MODE)
+    if (initialLocalUser) {
       return {
-        user: localUser,
+        user: initialLocalUser,
         loading: false,
         error: null,
         isAuthenticated: true,
       } as const;
     }
-    localStorage.setItem("manus-runtime-user-info", JSON.stringify(meQuery.data));
+    // 4) Se estiver em modo local mas sem usuário, continue sem backend
+    if (isLocalMode()) {
+      return {
+        user: null,
+        loading: false,
+        error: null,
+        isAuthenticated: false,
+      } as const;
+    }
+    try {
+      localStorage.setItem(
+        "manus-runtime-user-info",
+        JSON.stringify(meQuery.data ?? null)
+      );
+    } catch {}
     return {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
@@ -62,6 +96,7 @@ export function useAuth(options?: UseAuthOptions) {
       isAuthenticated: Boolean(meQuery.data),
     };
   }, [
+    initialLocalUser,
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
@@ -70,20 +105,35 @@ export function useAuth(options?: UseAuthOptions) {
   ]);
 
   useEffect(() => {
-  if (isLocalMode()) return; // nunca redireciona no modo local
-  if (!redirectOnUnauthenticated) return;
+    if (!redirectOnUnauthenticated) return;
+    // Se houver usuário local, não redireciona
+    if (initialLocalUser) return;
+
+    // Em modo local, redireciona para /login caso não esteja logado
+    if (isLocalMode()) {
+      if (
+        !state.user &&
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/login"
+      ) {
+        window.location.href = "/login";
+      }
+      return;
+    }
+
+    // Em modo remoto, respeita o status do backend
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
-
-    window.location.href = redirectPath
+    window.location.href = redirectPath;
   }, [
     redirectOnUnauthenticated,
     redirectPath,
     logoutMutation.isPending,
     meQuery.isLoading,
     state.user,
+    initialLocalUser,
   ]);
 
   return {

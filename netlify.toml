@@ -1,0 +1,14 @@
+[build]
+  command = "pnpm build"
+  publish = "dist/public"
+
+[build.environment]
+  # Habilita o modo local também em produção (Netlify)
+  VITE_LOCAL_MODE = "true"
+  VITE_APP_TITLE = "Dashboard Imagens 2026"
+
+# Fallback de SPA (redundante ao _redirects, mas inofensivo)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

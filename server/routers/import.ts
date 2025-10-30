@@ -8,18 +8,22 @@ export const importRouter = router({
   importFromJson: protectedProcedure
     .input(z.object({
       filePath: z.string().optional(),
+      content: z.string().optional(), // conteúdo JSON direto do cliente
     }))
     .mutation(async ({ input }) => {
       try {
-        // Usar arquivo padrão se não especificado
-        const dataPath = input.filePath || path.join(process.cwd(), "import_data.json");
-        
-        if (!fs.existsSync(dataPath)) {
-          throw new Error("Arquivo de importação não encontrado");
+        // 1) Se conteúdo veio do cliente, usa ele; senão tenta ler arquivo
+        let data: any;
+        if (input.content && input.content.trim().length > 0) {
+          data = JSON.parse(input.content);
+        } else {
+          const dataPath = input.filePath || path.join(process.cwd(), "import_data.json");
+          if (!fs.existsSync(dataPath)) {
+            throw new Error("Arquivo de importação não encontrado");
+          }
+          const fileContent = fs.readFileSync(dataPath, "utf-8");
+          data = JSON.parse(fileContent);
         }
-
-        const fileContent = fs.readFileSync(dataPath, "utf-8");
-        const data = JSON.parse(fileContent);
 
         let importedUnits = 0;
         let importedLabs = 0;
@@ -74,7 +78,7 @@ export const importRouter = router({
             try {
               // Encontrar o laboratório correspondente
               const labs = await db.getLaboratories();
-              const matchingLab = labs.find(l => 
+              const matchingLab = labs.find((l: any) => 
                 l.predio === (labInfo as any).predio && l.sala === (labInfo as any).sala
               );
 

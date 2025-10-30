@@ -11,6 +11,7 @@ import { localdb } from "@/lib/localdb";
 
 export default function DataManagement() {
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
 
@@ -157,14 +158,23 @@ export default function DataManagement() {
             try {
               localdb.import(content);
               toast.success("Dados importados no navegador");
+              // invalidar caches para atualizar telas imediatamente
+              await Promise.all([
+                utils.academicUnits.list.invalidate(),
+                utils.laboratories.list.invalidate(),
+              ]);
             } catch (err) {
               toast.error("JSON inválido para importação local");
               console.error(err);
             }
           } else {
-            const data = JSON.parse(content);
-            const result = await importDataMutation.mutateAsync({});
+            // Envia o conteúdo do arquivo para o backend processar
+            const result = await importDataMutation.mutateAsync({ content });
             toast.success(result.message);
+            await Promise.all([
+              utils.academicUnits.list.invalidate(),
+              utils.laboratories.list.invalidate(),
+            ]);
           }
           setImportFile(null);
         } catch (error) {
