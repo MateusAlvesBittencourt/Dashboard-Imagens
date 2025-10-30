@@ -29,6 +29,41 @@ export const importRouter = router({
         let importedLabs = 0;
         let importedSoftware = 0;
 
+        const labsInlineSoftwares: Array<{
+          key: string;
+          predio: string;
+          sala: string;
+          softwares: any[];
+        }> = [];
+        const labsWithInlineSoftwareKeys = new Set<string>();
+        const makeLabKey = (predio: any, sala: any) => {
+          const normPredio = String(predio ?? "").trim().toLowerCase();
+          const normSala = String(sala ?? "").trim().toLowerCase();
+          return `${normPredio}|${normSala}`;
+        };
+        const normalizeNullableString = (value: any) => {
+          if (value === undefined || value === null) {
+            return null;
+          }
+          const str = String(value).trim();
+          return str.length === 0 ? null : str;
+        };
+        const normalizeLicense = (value: any) => {
+          const normalized = normalizeNullableString(value);
+          return normalized ?? "Gratuito";
+        };
+        let labsMap: Map<string, any> | null = null;
+        const getLabsMap = async () => {
+          if (labsMap) {
+            return labsMap;
+          }
+          const labsList = await db.getLaboratories();
+          labsMap = new Map(
+            labsList.map((l: any) => [makeLabKey(l.predio, l.sala), l])
+          );
+          return labsMap;
+        };
+
         // Importar unidades acadêmicas
         if (data.academic_units && Array.isArray(data.academic_units)) {
           for (const unit of data.academic_units) {
@@ -56,7 +91,9 @@ export const importRouter = router({
         if (data.laboratories && Array.isArray(data.laboratories)) {
           for (const lab of data.laboratories) {
             try {
+              const providedId = typeof lab.id === "number" ? lab.id : undefined;
               await db.createLaboratory({
+                id: providedId,
                 predio: lab.predio,
                 bloco: lab.bloco,
                 sala: lab.sala,
@@ -66,34 +103,94 @@ export const importRouter = router({
                 ramalContato: lab.ramalContato,
               });
               importedLabs++;
+              if (lab?.predio && lab?.sala) {
+                const key = makeLabKey(lab.predio, lab.sala);
+                const softwares = Array.isArray(lab.softwares) ? lab.softwares : [];
+                labsInlineSoftwares.push({
+                  key,
+                  predio: String(lab.predio ?? ""),
+                  sala: String(lab.sala ?? ""),
+                  softwares,
+                });
+              }
             } catch (error) {
               console.error(`Erro ao importar laboratório ${lab.predio}-${lab.sala}:`, error);
             }
           }
         }
 
+        // Importar softwares descritos dentro dos próprios registros de laboratório
+        if (labsInlineSoftwares.length > 0) {
+          const map = await getLabsMap();
+          for (const labEntry of labsInlineSoftwares) {
+            if (!labEntry.softwares || labEntry.softwares.length === 0) {
+              continue;
+            }
+            const matchingLab = map.get(labEntry.key);
+            if (!matchingLab) {
+              console.warn(`[Import] Não foi possível localizar laboratório ${labEntry.predio}-${labEntry.sala} para vincular softwares.`);
+              continue;
+            }
+            for (const software of labEntry.softwares) {
+              const softwareName =
+                software?.softwareName ??
+                software?.name ??
+                software?.descricao ??
+                software?.descricaoSoftware ??
+                "";
+              if (!softwareName) {
+                console.warn(`[Import] Software sem nome ignorado no laboratório ${labEntry.predio}-${labEntry.sala}.`);
+                continue;
+              }
+              try {
+                await db.createSoftwareInstallation({
+                  laboratoryId: matchingLab.id,
+                  softwareName: String(softwareName),
+                  version: normalizeNullableString(software?.version ?? software?.versao) ?? undefined,
+                  license: normalizeLicense(software?.license ?? software?.licenca),
+                });
+                importedSoftware++;
+              } catch (error) {
+                console.error(`Erro ao importar software ${softwareName} para ${labEntry.predio}-${labEntry.sala}:`, error);
+              }
+            }
+            labsWithInlineSoftwareKeys.add(labEntry.key);
+          }
+        }
+
         // Importar softwares dos laboratórios
         if (data.lab_details && typeof data.lab_details === "object") {
+          const map = await getLabsMap();
           for (const [labName, labInfo] of Object.entries(data.lab_details)) {
             try {
-              // Encontrar o laboratório correspondente
-              const labs = await db.getLaboratories();
-              const matchingLab = labs.find((l: any) => 
-                l.predio === (labInfo as any).predio && l.sala === (labInfo as any).sala
-              );
+              const key = makeLabKey((labInfo as any).predio, (labInfo as any).sala);
+              if (key && labsWithInlineSoftwareKeys.has(key)) {
+                continue;
+              }
+              const matchingLab = map.get(key);
 
               if (matchingLab && (labInfo as any).softwares) {
                 for (const software of (labInfo as any).softwares) {
+                  const softwareName =
+                    software?.softwareName ??
+                    software?.name ??
+                    software?.descricao ??
+                    software?.descricaoSoftware ??
+                    "";
+                  if (!softwareName) {
+                    console.warn(`[Import] Software sem nome ignorado no bloco de detalhes ${labName}.`);
+                    continue;
+                  }
                   try {
                     await db.createSoftwareInstallation({
                       laboratoryId: matchingLab.id,
-                      softwareName: software.name,
-                      version: software.version,
-                      license: software.license,
+                      softwareName: String(softwareName),
+                      version: normalizeNullableString(software?.version ?? software?.versao) ?? undefined,
+                      license: normalizeLicense(software?.license ?? software?.licenca),
                     });
                     importedSoftware++;
                   } catch (error) {
-                    console.error(`Erro ao importar software ${software.name}:`, error);
+                    console.error(`Erro ao importar software ${softwareName}:`, error);
                   }
                 }
               }

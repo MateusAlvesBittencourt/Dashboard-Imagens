@@ -2,193 +2,640 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
-import { Download, Upload, FileText, Database } from "lucide-react";
+import { useRef, useState, type ChangeEvent } from "react";
+import { Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { isLocalMode } from "@/lib/env";
 import { localdb } from "@/lib/localdb";
 
+const downloadBase64 = (data: string, filename: string, mimeType: string = "text/csv") => {
+  const binaryString = window.atob(data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: mimeType });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(anchor);
+};
+
+const downloadText = (text: string, filename: string, mimeType: string = "application/json; charset=utf-8") => {
+  const blob = new Blob([text], { type: mimeType });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(anchor);
+};
+
+type NormalizedUnit = {
+  id: number;
+  name: string;
+  emailCronograma?: string | null;
+  emailReforco?: string | null;
+  cienciaUnidade?: string | null;
+  listaSoftwares?: string | null;
+  criacao?: string | null;
+  testeDeploy?: string | null;
+  homologacao?: string | null;
+  aprovacao?: string | null;
+  implantacao?: string | null;
+};
+
+type NormalizedSoftware = {
+  softwareName: string;
+  version?: string | null;
+  license: string;
+};
+
+type NormalizedLab = {
+  id: number;
+  predio: string;
+  bloco?: string | null;
+  sala: string;
+  estacao?: string | null;
+  nomeContato?: string | null;
+  emailContato?: string | null;
+  ramalContato?: string | null;
+  softwares?: NormalizedSoftware[];
+};
+
+type NormalizedMachine = {
+  id: number;
+  laboratoryId: number;
+  hostname: string;
+  patrimonio?: string | null;
+  formatted: boolean;
+  formattedAt?: string | null;
+};
+
+const normalizeCronogramaUnits = (rawUnits: any[]): NormalizedUnit[] => {
+  return rawUnits.map((unit, index) => {
+    const name = unit?.name ?? unit?.nome ?? "";
+    if (!name) {
+      throw new Error(`Linha ${index + 1}: campo "name" obrigatorio.`);
+    }
+
+    const pick = (primary: any, secondary: any) => {
+      if (primary === undefined || primary === null || primary === "") {
+        return secondary ?? null;
+      }
+      return String(primary);
+    };
+
+    return {
+      id: typeof unit?.id === "number" ? unit.id : index + 1,
+      name: String(name),
+      emailCronograma: pick(unit?.emailCronograma, unit?.email_cronograma),
+      emailReforco: pick(unit?.emailReforco, unit?.email_reforco),
+      cienciaUnidade: pick(unit?.cienciaUnidade, unit?.ciencia_unidade),
+      listaSoftwares: pick(unit?.listaSoftwares, unit?.lista_softwares),
+      criacao: pick(unit?.criacao, unit?.criacao_data),
+      testeDeploy: pick(unit?.testeDeploy, unit?.teste_deploy),
+      homologacao: pick(unit?.homologacao, unit?.homologacao_data),
+      aprovacao: pick(unit?.aprovacao, unit?.aprovacao_data),
+      implantacao: pick(unit?.implantacao, unit?.implantacao_data),
+    };
+  });
+};
+
+const normalizeLaboratories = (rawLabs: any[]): NormalizedLab[] => {
+  return rawLabs.map((lab, index) => {
+    const predio = lab?.predio ?? lab?.building ?? "";
+    const sala = lab?.sala ?? lab?.room ?? "";
+    if (!predio || !sala) {
+      throw new Error(`Linha ${index + 1}: campos "predio" e "sala" sao obrigatorios.`);
+    }
+
+    const sanitize = (value: any) => {
+      if (value === undefined || value === null || value === "") {
+        return null;
+      }
+      return String(value);
+    };
+
+    const normalizeLicense = (value: any) => {
+      const sanitized = sanitize(value);
+      return sanitized ?? "Gratuito";
+    };
+
+    const softwareSource = Array.isArray(lab?.softwares)
+      ? lab.softwares
+      : Array.isArray(lab?.software)
+      ? lab.software
+      : Array.isArray(lab?.softwareList)
+      ? lab.softwareList
+      : Array.isArray(lab?.softwareInstallations)
+      ? lab.softwareInstallations
+      : [];
+
+    const softwares: NormalizedSoftware[] = Array.isArray(softwareSource)
+      ? softwareSource.map((software: any, softwareIndex: number) => {
+          const softwareName =
+            software?.softwareName ??
+            software?.name ??
+            software?.descricao ??
+            software?.descricaoSoftware ??
+            "";
+          if (!softwareName) {
+            throw new Error(
+              `Linha ${index + 1}, software ${softwareIndex + 1}: campo "softwareName" obrigatorio.`
+            );
+          }
+          return {
+            softwareName: String(softwareName),
+            version: sanitize(software?.version ?? software?.versao),
+            license: normalizeLicense(software?.license ?? software?.licenca),
+          };
+        })
+      : [];
+
+    return {
+      id: typeof lab?.id === "number" ? lab.id : index + 1,
+      predio: String(predio),
+      bloco: sanitize(lab?.bloco),
+      sala: String(sala),
+      estacao: sanitize(lab?.estacao ?? lab?.estacaoTrabalho),
+      nomeContato: sanitize(lab?.nomeContato ?? lab?.contatoNome),
+      emailContato: sanitize(lab?.emailContato ?? lab?.contatoEmail),
+      ramalContato: sanitize(lab?.ramalContato ?? lab?.contatoRamal),
+      softwares,
+    };
+  });
+};
+
+const normalizeSoftwareInstallationsFromLabs = (
+  labs: NormalizedLab[]
+): Array<{
+  id: number;
+  laboratoryId: number;
+  softwareName: string;
+  version?: string | null;
+  license: string;
+}> => {
+  const installations: Array<{
+    id: number;
+    laboratoryId: number;
+    softwareName: string;
+    version?: string | null;
+    license: string;
+  }> = [];
+  let nextId = 1;
+  for (const lab of labs) {
+    const softwares = Array.isArray(lab.softwares) ? lab.softwares : [];
+    for (const software of softwares) {
+      installations.push({
+        id: nextId++,
+        laboratoryId: lab.id,
+        softwareName: software.softwareName,
+        version: software.version ?? null,
+        license: software.license ?? "Gratuito",
+      });
+    }
+  }
+  return installations;
+};
+
+const normalizeMachines = (rawMachines: any[]): NormalizedMachine[] => {
+  return rawMachines.map((machine, index) => {
+    const rawLabId = machine?.laboratoryId ?? machine?.laboratory_id ?? machine?.labId ?? machine?.lab_id;
+    const laboratoryId = Number(rawLabId);
+    if (!laboratoryId || Number.isNaN(laboratoryId)) {
+      throw new Error(`Linha ${index + 1}: campo "laboratoryId" obrigatorio.`);
+    }
+
+    const normalizeNullableString = (value: any) => {
+      if (value === undefined || value === null) {
+        return null;
+      }
+      const str = String(value).trim();
+      return str.length === 0 ? null : str;
+    };
+
+    const hostname = String(machine?.hostname ?? machine?.name ?? "").trim();
+    const formattedRaw = machine?.formatted;
+    let formatted = false;
+    if (typeof formattedRaw === "string") {
+      formatted = ["true", "1", "yes", "sim"].includes(formattedRaw.toLowerCase());
+    } else {
+      formatted = Boolean(formattedRaw);
+    }
+
+    return {
+      id: typeof machine?.id === "number" ? machine.id : index + 1,
+      laboratoryId,
+      hostname,
+      patrimonio: normalizeNullableString(machine?.patrimonio ?? machine?.assetTag ?? machine?.patrimonioNumero),
+      formatted,
+      formattedAt: normalizeNullableString(machine?.formattedAt ?? machine?.formatted_at),
+    };
+  });
+};
+
 export default function DataManagement() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
-  const [isImporting, setIsImporting] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
+  const hasLocalAuth = (() => {
+    try {
+      return Boolean(localStorage.getItem("local-auth"));
+    } catch {
+      return false;
+    }
+  })();
+  const useLocal = isLocalMode() || hasLocalAuth;
 
-  // Mutations para exportação
-  const exportUnitsMutation = trpc.export.exportUnitsToExcel.useMutation();
+  const [cronogramaFile, setCronogramaFile] = useState<File | null>(null);
+  const [labsFile, setLabsFile] = useState<File | null>(null);
+  const [machinesFile, setMachinesFile] = useState<File | null>(null);
+  const [isImportingCronograma, setIsImportingCronograma] = useState(false);
+  const [isImportingLabs, setIsImportingLabs] = useState(false);
+  const [isImportingMachines, setIsImportingMachines] = useState(false);
+
+  const cronogramaFileRef = useRef<HTMLInputElement | null>(null);
+  const labsFileRef = useRef<HTMLInputElement | null>(null);
+  const machinesFileRef = useRef<HTMLInputElement | null>(null);
+
+  const importCronogramaMutation = trpc.import.importFromJson.useMutation();
+  const importLabsMutation = trpc.import.importFromJson.useMutation();
+  const exportCronogramaMutation = trpc.export.exportUnitsToExcel.useMutation();
   const exportLabsMutation = trpc.export.exportLaboratoriesToExcel.useMutation();
-  const exportSoftwareMutation = trpc.export.exportSoftwaresToExcel.useMutation();
-  const exportReportMutation = trpc.export.exportCompleteReport.useMutation();
-  const exportCSVMutation = trpc.export.exportToCSV.useMutation();
 
-  // Mutation para importação
-  const importDataMutation = trpc.import.importFromJson.useMutation();
-
-  const downloadFile = (data: string, filename: string, mimeType: string = "text/csv") => {
-    const binaryString = atob(data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: mimeType });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+  const handleCronogramaFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setCronogramaFile(file);
   };
 
-  const handleExportUnits = async () => {
-    try {
-      if (isLocalMode()) {
-        const json = JSON.stringify({ academicUnits: localdb.listUnits() }, null, 2);
-        downloadFile(btoa(json), `unidades.json`, 'application/json');
-      } else {
-        const result = await exportUnitsMutation.mutateAsync();
-        downloadFile(result.data, result.filename, result.mimeType);
-      }
-      toast.success("Unidades acadêmicas exportadas com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao exportar unidades");
-      console.error(error);
+  const handleLabsFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setLabsFile(file);
+  };
+
+  const handleMachinesFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setMachinesFile(file);
+  };
+
+  const clearCronogramaFile = () => {
+    setCronogramaFile(null);
+    if (cronogramaFileRef.current) {
+      cronogramaFileRef.current.value = "";
     }
   };
 
-  const handleExportLabs = async () => {
-    try {
-      if (isLocalMode()) {
-        const json = JSON.stringify({ laboratories: localdb.listLabs() }, null, 2);
-        downloadFile(btoa(json), `laboratorios.json`, 'application/json');
-      } else {
-        const result = await exportLabsMutation.mutateAsync();
-        downloadFile(result.data, result.filename, result.mimeType);
-      }
-      toast.success("Laboratórios exportados com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao exportar laboratórios");
-      console.error(error);
+  const clearLabsFile = () => {
+    setLabsFile(null);
+    if (labsFileRef.current) {
+      labsFileRef.current.value = "";
     }
   };
 
-  const handleExportSoftware = async () => {
-    try {
-      if (isLocalMode()) {
-        toast.info("Exportação de softwares indisponível no modo local");
-        return;
-      }
-      const result = await exportSoftwareMutation.mutateAsync();
-      downloadFile(result.data, result.filename, result.mimeType);
-      toast.success("Softwares exportados com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao exportar softwares");
-      console.error(error);
+  const clearMachinesFile = () => {
+    setMachinesFile(null);
+    if (machinesFileRef.current) {
+      machinesFileRef.current.value = "";
     }
   };
 
-  const handleExportReport = async () => {
-    try {
-      if (isLocalMode()) {
-        toast.info("Relatório completo indisponível no modo local");
-        return;
-      }
-      const result = await exportReportMutation.mutateAsync();
-      downloadFile(result.data, result.filename, result.mimeType);
-      toast.success("Relatório exportado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao exportar relatório");
-      console.error(error);
-    }
-  };
-
-  const handleExportCSV = async (dataType: "units" | "laboratories" | "softwares") => {
-    try {
-      if (isLocalMode()) {
-        if (dataType === 'units') {
-          const json = JSON.stringify(localdb.listUnits(), null, 2);
-          downloadFile(btoa(json), `unidades.json`, 'application/json');
-        } else if (dataType === 'laboratories') {
-          const json = JSON.stringify(localdb.listLabs(), null, 2);
-          downloadFile(btoa(json), `laboratorios.json`, 'application/json');
-        } else {
-          toast.info("Exportação de softwares indisponível no modo local");
-        }
-      } else {
-        const result = await exportCSVMutation.mutateAsync({ dataType });
-        downloadFile(result.data, result.filename, result.mimeType);
-      }
-      toast.success(`Dados de ${dataType} exportados em CSV!`);
-    } catch (error) {
-      toast.error("Erro ao exportar CSV");
-      console.error(error);
-    }
-  };
-
-  const handleClearLabsLocal = () => {
-    if (!isLocalMode()) {
-      toast.info("Limpeza em massa disponível apenas no modo local");
+  const handleImportCronograma = async () => {
+    if (!cronogramaFile) {
+      toast.error("Selecione um arquivo JSON antes de importar.");
       return;
     }
-    if (!confirm('Tem certeza que deseja apagar TODOS os laboratórios e softwares? Essa ação não pode ser desfeita.')) return;
+
+    setIsImportingCronograma(true);
     try {
-      localdb.clearLabs();
-      toast.success('Laboratórios e softwares removidos do armazenamento local');
-    } catch (e) {
-      console.error(e);
-      toast.error('Falha ao limpar laboratórios');
+      const rawContent = await cronogramaFile.text();
+      let parsed: any;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch (error) {
+        toast.error("Arquivo JSON invalido.");
+        return;
+      }
+
+      const rawUnits = Array.isArray(parsed?.academicUnits)
+        ? parsed.academicUnits
+        : Array.isArray(parsed?.academic_units)
+        ? parsed.academic_units
+        : Array.isArray(parsed?.cronograma)
+        ? parsed.cronograma
+        : Array.isArray(parsed)
+        ? parsed
+        : null;
+
+      if (!rawUnits || rawUnits.length === 0) {
+        toast.error("Nenhum dado de cronograma encontrado no arquivo.");
+        return;
+      }
+
+      let normalizedUnits: NormalizedUnit[];
+      try {
+        normalizedUnits = normalizeCronogramaUnits(rawUnits);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erro ao normalizar dados.");
+        return;
+      }
+
+      if (useLocal) {
+        const current = JSON.parse(localdb.export());
+        current.academicUnits = normalizedUnits;
+        localdb.import(JSON.stringify(current));
+        toast.success("Cronograma importado no modo local.");
+      } else {
+        const payload = JSON.stringify({
+          academic_units: normalizedUnits.map(({ id, ...rest }) => rest),
+        });
+        const result = await importCronogramaMutation.mutateAsync({ content: payload });
+        toast.success(result.message ?? "Cronograma importado com sucesso.");
+      }
+
+      await Promise.all([
+        utils.academicUnits.list.invalidate(),
+        utils.laboratories.list.invalidate(),
+      ]).catch(console.error);
+
+      clearCronogramaFile();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao importar cronograma.");
+    } finally {
+      setIsImportingCronograma(false);
     }
   };
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImportLaboratories = async () => {
+    if (!labsFile) {
+      toast.error("Selecione um arquivo JSON antes de importar.");
+      return;
+    }
 
-    setImportFile(file);
-    setIsImporting(true);
+    setIsImportingLabs(true);
+    try {
+      const rawContent = await labsFile.text();
+      let parsed: any;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch (error) {
+        toast.error("Arquivo JSON invalido.");
+        return;
+      }
+
+      const rawLabs = Array.isArray(parsed?.laboratories)
+        ? parsed.laboratories
+        : Array.isArray(parsed?.labs)
+        ? parsed.labs
+        : Array.isArray(parsed)
+        ? parsed
+        : null;
+
+      if (!rawLabs || rawLabs.length === 0) {
+        toast.error("Nenhum laboratorio encontrado no arquivo.");
+        return;
+      }
+
+      let normalizedLabs: NormalizedLab[];
+      try {
+        normalizedLabs = normalizeLaboratories(rawLabs);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erro ao normalizar dados de laboratorios.");
+        return;
+      }
+
+        if (useLocal) {
+          const current = JSON.parse(localdb.export());
+          const labsWithoutSoftwares = normalizedLabs.map(({ softwares, ...lab }) => lab);
+          current.laboratories = labsWithoutSoftwares;
+          const softwareInstallations = normalizeSoftwareInstallationsFromLabs(normalizedLabs);
+          current.softwareInstallations = softwareInstallations;
+          localdb.import(JSON.stringify(current));
+          toast.success("Laboratorios importados no modo local.");
+        } else {
+          const labsForImport = normalizedLabs.map(({ id, softwares, ...rest }) => {
+            const normalizedSoftwares = Array.isArray(softwares) ? softwares : [];
+            return {
+              ...rest,
+              softwares: normalizedSoftwares.map((software) => ({
+                softwareName: software.softwareName,
+                version: software.version ?? null,
+                license: software.license ?? "Gratuito",
+              })),
+            };
+          });
+          const payload = JSON.stringify({
+            laboratories: labsForImport,
+          });
+          const result = await importLabsMutation.mutateAsync({ content: payload });
+          toast.success(result.message ?? "Laboratorios importados com sucesso.");
+        }
+
+      await Promise.all([
+        utils.academicUnits.list.invalidate(),
+        utils.laboratories.list.invalidate(),
+      ]).catch(console.error);
+
+      clearLabsFile();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao importar laboratorios.");
+    } finally {
+      setIsImportingLabs(false);
+    }
+  };
+
+  const handleImportMachines = async () => {
+    if (!machinesFile) {
+      toast.error("Selecione um arquivo JSON antes de importar.");
+      return;
+    }
+
+    if (!useLocal) {
+      toast.info("Importacao de implementacao disponivel apenas no modo local.");
+      return;
+    }
+
+    setIsImportingMachines(true);
+    try {
+      const rawContent = await machinesFile.text();
+      let parsed: any;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch (error) {
+        toast.error("Arquivo JSON invalido.");
+        return;
+      }
+
+      const rawMachines = Array.isArray(parsed?.machines)
+        ? parsed.machines
+        : Array.isArray(parsed)
+        ? parsed
+        : null;
+
+      if (!rawMachines || rawMachines.length === 0) {
+        toast.error("Nenhuma maquina encontrada no arquivo.");
+        return;
+      }
+
+      let normalizedMachines: NormalizedMachine[];
+      try {
+        normalizedMachines = normalizeMachines(rawMachines);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erro ao normalizar dados de implementacao.");
+        return;
+      }
+
+      const current = JSON.parse(localdb.export());
+      current.machines = normalizedMachines;
+      localdb.import(JSON.stringify(current));
+      toast.success("Lista de implementacao importada no modo local.");
+
+      await Promise.all([
+        utils.academicUnits.list.invalidate(),
+        utils.laboratories.list.invalidate(),
+      ]).catch(console.error);
+
+      clearMachinesFile();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao importar lista de implementacao.");
+    } finally {
+      setIsImportingMachines(false);
+    }
+  };
+
+  const handleExportCronograma = async () => {
+    try {
+      if (useLocal) {
+        const units = localdb.listUnits();
+        const payload = { academicUnits: units };
+        downloadText(JSON.stringify(payload, null, 2), "cronograma_local.json");
+        toast.success("Cronograma exportado em JSON.");
+        return;
+      }
+
+      const result = await exportCronogramaMutation.mutateAsync();
+      downloadBase64(
+        result.data,
+        result.filename ?? "cronograma.csv",
+        result.mimeType ?? "text/csv"
+      );
+      toast.success("Cronograma exportado.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao exportar cronograma.");
+    }
+  };
+
+  const handleExportLaboratories = async () => {
+    try {
+      if (useLocal) {
+        const labs = localdb.listLabs();
+        const payload = {
+          laboratories: labs.map((lab) => {
+            const softwares = localdb
+              .listSoftwareByLab(lab.id)
+              .map((software) => ({
+                softwareName: software.softwareName,
+                version: software.version ?? null,
+                license: software.license ?? "Gratuito",
+              }));
+            return {
+              ...lab,
+              softwares,
+            };
+          }),
+        };
+        downloadText(JSON.stringify(payload, null, 2), "laboratorios_local.json");
+        toast.success("Laboratorios exportados em JSON.");
+        return;
+      }
+
+      const result = await exportLabsMutation.mutateAsync();
+      downloadBase64(
+        result.data,
+        result.filename ?? "laboratorios.csv",
+        result.mimeType ?? "text/csv"
+      );
+      toast.success("Laboratorios exportados.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao exportar laboratorios.");
+    }
+  };
+
+  const handleExportMachines = async () => {
+    try {
+      if (useLocal) {
+        const snapshot = JSON.parse(localdb.export());
+        const machines = Array.isArray(snapshot?.machines) ? snapshot.machines : [];
+        downloadText(JSON.stringify({ machines }, null, 2), "implementacao_local.json");
+        toast.success("Lista de implementacao exportada em JSON.");
+        return;
+      }
+
+      if (!trpc.machines || !trpc.machines.getByLaboratory || typeof trpc.machines.getByLaboratory.fetch !== "function") {
+        toast.info("Exportacao de implementacao ainda nao disponivel no modo servidor.");
+        return;
+      }
+
+      const labs = await trpc.laboratories.list.fetch(undefined);
+      const machinesByLab = await Promise.all(
+        (labs ?? []).map(async (lab: any) => {
+          try {
+            const data = await trpc.machines.getByLaboratory.fetch({ laboratoryId: lab.id });
+            return (data ?? []).map((machine: any) => ({
+              ...machine,
+              laboratoryId: lab.id,
+              laboratoryName: `${lab.predio}-${lab.sala}`,
+            }));
+          } catch (error) {
+            console.error("Falha ao buscar maquinas do laboratorio", lab?.id, error);
+            return [];
+          }
+        })
+      );
+
+      const machines = machinesByLab.flat();
+      downloadText(JSON.stringify({ machines }, null, 2), "implementacao.json");
+      toast.success("Lista de implementacao exportada.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao exportar lista de implementacao.");
+    }
+  };
+
+  const handleClearLabsLocal = async () => {
+    if (!useLocal) {
+      toast.info("Limpeza em massa disponivel apenas no modo local.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Tem certeza que deseja apagar TODOS os laboratorios e softwares? Essa acao nao pode ser desfeita."
+    );
+    if (!confirmed) {
+      return;
+    }
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const content = event.target?.result as string;
-          if (isLocalMode()) {
-            try {
-              localdb.import(content);
-              toast.success("Dados importados no navegador");
-              // invalidar caches para atualizar telas imediatamente
-              await Promise.all([
-                utils.academicUnits.list.invalidate(),
-                utils.laboratories.list.invalidate(),
-              ]);
-            } catch (err) {
-              toast.error("JSON inválido para importação local");
-              console.error(err);
-            }
-          } else {
-            // Envia o conteúdo do arquivo para o backend processar
-            const result = await importDataMutation.mutateAsync({ content });
-            toast.success(result.message);
-            await Promise.all([
-              utils.academicUnits.list.invalidate(),
-              utils.laboratories.list.invalidate(),
-            ]);
-          }
-          setImportFile(null);
-        } catch (error) {
-          toast.error("Erro ao processar arquivo de importação");
-          console.error(error);
-        } finally {
-          setIsImporting(false);
-        }
-      };
-      reader.readAsText(file);
+      localdb.clearLabs();
+      await Promise.all([
+        utils.academicUnits.list.invalidate(),
+        utils.laboratories.list.invalidate(),
+      ]).catch(console.error);
+      toast.success("Laboratorios e softwares removidos do armazenamento local.");
     } catch (error) {
-      toast.error("Erro ao ler arquivo");
       console.error(error);
-      setIsImporting(false);
+      toast.error("Falha ao limpar laboratorios.");
     }
   };
 
@@ -198,7 +645,7 @@ export default function DataManagement() {
         <div className="max-w-6xl mx-auto">
           <Card>
             <CardContent className="pt-6 text-center">
-              <p className="text-slate-600">Você precisa estar autenticado para acessar esta página.</p>
+              <p className="text-slate-600">Voce precisa estar autenticado para acessar esta pagina.</p>
             </CardContent>
           </Card>
         </div>
@@ -209,181 +656,264 @@ export default function DataManagement() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <BackButton className="mb-4" />
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Gerenciamento de Dados</h1>
-          <p className="text-slate-600">Importe e exporte dados do dashboard em vários formatos</p>
+          <p className="text-slate-600">Importe ou exporte informacoes do cronograma, dos laboratorios e da implementacao.</p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Importação */}
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <Upload className="w-6 h-6 text-blue-600" />
+                <Upload className="h-6 w-6 text-blue-600" />
                 <div>
-                  <CardTitle>Importar Dados</CardTitle>
-                  <CardDescription>Importe dados de arquivo JSON ou Excel</CardDescription>
+                  <CardTitle>Importar Cronograma</CardTitle>
+                  <CardDescription>Atualize as datas a partir de um arquivo JSON.</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
                 <input
+                  ref={cronogramaFileRef}
                   type="file"
-                  accept=".json,.xlsx,.csv"
-                  onChange={handleImportFile}
-                  disabled={isImporting}
+                  accept=".json"
+                  onChange={handleCronogramaFileChange}
                   className="hidden"
-                  id="import-file"
+                  id="cronograma-file-input"
                 />
-                <label htmlFor="import-file" className="cursor-pointer block">
-                  <Database className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <label htmlFor="cronograma-file-input" className="cursor-pointer block">
                   <p className="text-sm font-medium text-slate-900">
-                    {importFile ? importFile.name : "Clique para selecionar arquivo"}
+                    {cronogramaFile ? cronogramaFile.name : "Clique para selecionar um arquivo JSON"}
                   </p>
-                  <p className="text-xs text-slate-600 mt-1">JSON, XLSX ou CSV</p>
+                  <p className="text-xs text-slate-600 mt-1">Estrutura esperada: academicUnits[] ou academic_units[]</p>
                 </label>
               </div>
 
-              {importFile && (
-                <Button
-                  onClick={() => {
-                    const input = document.getElementById("import-file") as HTMLInputElement;
-                    if (input) input.click();
-                  }}
-                  className="w-full"
-                  disabled={isImporting}
-                >
-                  {isImporting ? "Importando..." : "Importar Dados"}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => cronogramaFileRef.current?.click()} disabled={isImportingCronograma}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Selecionar arquivo
                 </Button>
-              )}
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
-                  <strong>Dica:</strong> Use o arquivo import_data.json fornecido no projeto para importar os dados da planilha Excel.
-                </p>
+                {cronogramaFile && (
+                  <Button variant="outline" onClick={clearCronogramaFile} disabled={isImportingCronograma}>
+                    Remover
+                  </Button>
+                )}
               </div>
+
+              <Button
+                className="w-full"
+                onClick={handleImportCronograma}
+                disabled={isImportingCronograma || importCronogramaMutation.isPending}
+              >
+                {isImportingCronograma || importCronogramaMutation.isPending ? "Importando..." : "Importar cronograma"}
+              </Button>
             </CardContent>
           </Card>
 
-          {/* Exportação */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <Download className="w-6 h-6 text-green-600" />
+                <Download className="h-6 w-6 text-green-600" />
                 <div>
-                  <CardTitle>Exportar Dados</CardTitle>
-                  <CardDescription>Exporte dados em CSV ou relatórios completos</CardDescription>
+                  <CardTitle>Exportar Cronograma</CardTitle>
+                  <CardDescription>Baixe os dados das unidades para planilhas ou backup.</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-600">
+                {useLocal
+                  ? "O cronograma sera exportado como JSON com todas as unidades do armazenamento local."
+                  : "O cronograma sera exportado como CSV gerado pelo servidor."}
+              </p>
               <Button
-                onClick={handleExportUnits}
-                disabled={exportUnitsMutation.isPending}
-                className="w-full justify-start gap-2"
-                variant="outline"
+                className="w-full"
+                onClick={handleExportCronograma}
+                disabled={exportCronogramaMutation.isPending}
               >
-                <Download size={18} />
-                {exportUnitsMutation.isPending ? "Exportando..." : "Unidades Acadêmicas (CSV)"}
+                {exportCronogramaMutation.isPending ? "Gerando arquivo..." : "Exportar cronograma"}
               </Button>
+            </CardContent>
+          </Card>
 
-              <Button
-                onClick={handleExportLabs}
-                disabled={exportLabsMutation.isPending}
-                className="w-full justify-start gap-2"
-                variant="outline"
-              >
-                <Download size={18} />
-                {exportLabsMutation.isPending ? "Exportando..." : "Laboratórios (CSV)"}
-              </Button>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Upload className="h-6 w-6 text-blue-600" />
+                <div>
+                  <CardTitle>Importar Laboratorios</CardTitle>
+                  <CardDescription>Atualize os laboratorios a partir de um arquivo JSON.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                <input
+                  ref={labsFileRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleLabsFileChange}
+                  className="hidden"
+                  id="labs-file-input"
+                />
+                <label htmlFor="labs-file-input" className="cursor-pointer block">
+                  <p className="text-sm font-medium text-slate-900">
+                    {labsFile ? labsFile.name : "Clique para selecionar um arquivo JSON"}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1">Estrutura esperada: laboratories[] ou labs[]</p>
+                </label>
+              </div>
 
-              <Button
-                onClick={handleExportSoftware}
-                disabled={exportSoftwareMutation.isPending}
-                className="w-full justify-start gap-2"
-                variant="outline"
-              >
-                <Download size={18} />
-                {exportSoftwareMutation.isPending ? "Exportando..." : "Softwares (CSV)"}
-              </Button>
-
-              <Button
-                onClick={handleExportReport}
-                disabled={exportReportMutation.isPending}
-                className="w-full justify-start gap-2"
-                variant="outline"
-              >
-                <FileText size={18} />
-                {exportReportMutation.isPending ? "Gerando..." : "Relatório Completo (TXT)"}
-              </Button>
-
-              {isLocalMode() && (
-                <>
-                  <div className="border-t my-3" />
-                  <Button
-                    onClick={handleClearLabsLocal}
-                    className="w-full justify-start gap-2"
-                    variant="destructive"
-                  >
-                    Apagar TODOS os Laboratórios (Local)
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => labsFileRef.current?.click()} disabled={isImportingLabs}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Selecionar arquivo
+                </Button>
+                {labsFile && (
+                  <Button variant="outline" onClick={clearLabsFile} disabled={isImportingLabs}>
+                    Remover
                   </Button>
-                </>
+                )}
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={handleImportLaboratories}
+                disabled={isImportingLabs || importLabsMutation.isPending}
+              >
+                {isImportingLabs || importLabsMutation.isPending ? "Importando..." : "Importar laboratorios"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Download className="h-6 w-6 text-green-600" />
+                <div>
+                  <CardTitle>Exportar Laboratorios</CardTitle>
+                  <CardDescription>Baixe os dados para planilhas ou backup.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-600">
+                {useLocal
+                  ? "Os laboratorios serao exportados como JSON do armazenamento local."
+                  : "Os laboratorios serao exportados como CSV gerado pelo servidor."}
+              </p>
+              <Button
+                className="w-full"
+                onClick={handleExportLaboratories}
+                disabled={exportLabsMutation.isPending}
+              >
+                {exportLabsMutation.isPending ? "Gerando arquivo..." : "Exportar laboratorios"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Upload className="h-6 w-6 text-blue-600" />
+                <div>
+                  <CardTitle>Importar Implementacao</CardTitle>
+                  <CardDescription>Traga a lista de maquinas e patrimonios via JSON.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                <input
+                  ref={machinesFileRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleMachinesFileChange}
+                  className="hidden"
+                  id="machines-file-input"
+                />
+                <label htmlFor="machines-file-input" className="cursor-pointer block">
+                  <p className="text-sm font-medium text-slate-900">
+                    {machinesFile ? machinesFile.name : "Clique para selecionar um arquivo JSON"}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1">Estrutura esperada: machines[]</p>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => machinesFileRef.current?.click()} disabled={isImportingMachines || !useLocal}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Selecionar arquivo
+                </Button>
+                {machinesFile && (
+                  <Button variant="outline" onClick={clearMachinesFile} disabled={isImportingMachines}>
+                    Remover
+                  </Button>
+                )}
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={handleImportMachines}
+                disabled={isImportingMachines || !useLocal}
+              >
+                {isImportingMachines ? "Importando..." : "Importar implementacao"}
+              </Button>
+              {!useLocal && (
+                <p className="text-xs text-slate-500">
+                  Disponivel apenas no modo local por enquanto.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Download className="h-6 w-6 text-green-600" />
+                <div>
+                  <CardTitle>Exportar Implementacao</CardTitle>
+                  <CardDescription>Obtenha os patrimonios para auditoria ou planilhas.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-600">
+                {useLocal
+                  ? "Exporta um JSON com todas as maquinas armazenadas localmente."
+                  : "Tenta coletar todas as maquinas via servidor (quando suportado)."}
+              </p>
+              <Button className="w-full" onClick={handleExportMachines}>
+                Exportar implementacao
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Operacoes adicionais</CardTitle>
+              <CardDescription>Ferramentas extras para administracao local.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {useLocal ? (
+                <Button
+                  onClick={handleClearLabsLocal}
+                  className="w-full justify-start gap-2"
+                  variant="destructive"
+                >
+                  Apagar TODOS os laboratorios (Local)
+                </Button>
+              ) : (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  Ative o modo local para habilitar a limpeza de laboratorios e softwares nesta tela.
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Informações Adicionais */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Formatos Suportados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-3">Importação</h3>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">✓</span>
-                    <span><strong>JSON:</strong> Arquivo de importação com estrutura de dados</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">✓</span>
-                    <span><strong>Excel:</strong> Planilhas .xlsx com dados estruturados</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">✓</span>
-                    <span><strong>CSV:</strong> Arquivos separados por vírgula</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-3">Exportação</h3>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">✓</span>
-                    <span><strong>CSV:</strong> Formato universal compatível com Excel</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">✓</span>
-                    <span><strong>TXT:</strong> Relatório estruturado em texto</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">✓</span>
-                    <span><strong>JSON:</strong> Dados estruturados em JSON</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
