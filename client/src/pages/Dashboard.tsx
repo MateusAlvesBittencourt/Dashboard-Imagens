@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { isLocalMode } from "@/lib/env";
 import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
+import { localdb } from "@/lib/localdb";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -749,7 +750,7 @@ export default function Dashboard() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="flex items-end gap-2">
                 <Button
                   disabled={machineDialogLabId == null}
                   onClick={() => {
@@ -759,6 +760,71 @@ export default function Dashboard() {
                 >
                   Gerenciar Estações
                 </Button>
+                {(isLocalMode() || (typeof window !== 'undefined' && localStorage.getItem('local-auth'))) && (
+                  <>
+                    <Button
+                      variant="outline"
+                      disabled={machineDialogLabId == null}
+                      onClick={() => {
+                        if (machineDialogLabId == null) return;
+                        const lab = (labs as any[] | undefined)?.find(l => l.id === machineDialogLabId);
+                        const data = {
+                          laboratoryId: machineDialogLabId,
+                          predio: lab?.predio,
+                          sala: lab?.sala,
+                          machines: (labMachines as any[] | undefined) ?? [],
+                        };
+                        const json = JSON.stringify(data, null, 2);
+                        const blob = new Blob([json], { type: 'application/json; charset=utf-8' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `lab_${lab?.predio ?? ''}_${lab?.sala ?? ''}_estacoes.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }}
+                    >
+                      Exportar Estações (JSON)
+                    </Button>
+                    <input type="file" accept="application/json,.json" id="import-machines-file" className="hidden" />
+                    <Button
+                      variant="outline"
+                      disabled={machineDialogLabId == null}
+                      onClick={() => {
+                        const input = document.getElementById('import-machines-file') as HTMLInputElement | null;
+                        if (!input) return;
+                        input.onchange = async (ev: any) => {
+                          const file = ev.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const text = await file.text();
+                            const parsed = JSON.parse(text);
+                            const arr = Array.isArray(parsed?.machines) ? parsed.machines : Array.isArray(parsed) ? parsed : [];
+                            if (!machineDialogLabId) return;
+                            // substituir todas as máquinas do lab
+                            // @ts-ignore
+                            const replaced = localdb.replaceMachinesForLab(machineDialogLabId, arr);
+                            toast.success(`Importado ${replaced.length} estações`);
+                            // invalidar/atualizar visualmente
+                            // força refetch se houver query; aqui depende de como labMachines é carregado
+                            // podemos apenas fechar/reabrir modal para re-render
+                            setMachineEditMode(false);
+                          } catch (e) {
+                            console.error(e);
+                            toast.error('Falha ao importar estações');
+                          } finally {
+                            (ev.target as HTMLInputElement).value = '';
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
+                      Importar Estações
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

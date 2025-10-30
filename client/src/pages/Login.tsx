@@ -13,7 +13,7 @@ type LocalAuth = {
 };
 
 const FIXED_USERNAME = "mateus.bittencourt"; // comparar em minúsculas
-const FIXED_PASSWORD = "Pucrs@360";
+const FIXED_PASSWORD = "Deploy@360";
 
 export default function Login() {
   const [, navigate] = useLocation();

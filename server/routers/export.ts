@@ -13,7 +13,7 @@ export const exportRouter = router({
       // Gerar CSV como alternativa
       let csvContent = "ID,Nome,Email Cronograma,Email Reforço,Ciência Unidade,Lista Softwares,Criação,Teste Deploy,Homologação,Aprovação,Implantação\n";
       
-      units.forEach((unit) => {
+  units.forEach((unit: any) => {
         csvContent += `${unit.id},"${unit.name}",${unit.emailCronograma || ""},${unit.emailReforco || ""},${unit.cienciaUnidade || ""},${unit.listaSoftwares || ""},${unit.criacao || ""},${unit.testeDeploy || ""},${unit.homologacao || ""},${unit.aprovacao || ""},${unit.implantacao || ""}\n`;
       });
 
@@ -37,7 +37,7 @@ export const exportRouter = router({
 
       let csvContent = "ID,Prédio,Bloco,Sala,Estação,Nome Contato,Email Contato,Ramal Contato\n";
       
-      labs.forEach((lab) => {
+  labs.forEach((lab: any) => {
         csvContent += `${lab.id},${lab.predio},${lab.bloco || ""},${lab.sala},${lab.estacao || ""},"${lab.nomeContato || ""}","${lab.emailContato || ""}",${lab.ramalContato || ""}\n`;
       });
 
@@ -63,7 +63,7 @@ export const exportRouter = router({
       
       for (const lab of labs) {
         const softwares = await db.getSoftwareByLaboratory(lab.id);
-        softwares.forEach((software) => {
+  softwares.forEach((software: any) => {
           csvContent += `${lab.predio}-${lab.sala},"${software.softwareName}",${software.version || ""},"${software.license}"\n`;
         });
       }
@@ -76,6 +76,37 @@ export const exportRouter = router({
       };
     } catch (error) {
       throw new Error(`Erro ao exportar softwares: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
+  }),
+
+  /**
+   * Exportar laboratórios com suas listas de softwares (CSV, uma linha por software; labs sem software terão 1 linha com software em branco)
+   */
+  exportLaboratoriesWithSoftwaresToCSV: publicProcedure.mutation(async () => {
+    try {
+      const labs = await db.getLaboratories();
+
+      let csvContent = "ID,Prédio,Bloco,Sala,Estação,Nome Contato,Email Contato,Ramal Contato,Software,Versão,Licença\n";
+
+      for (const lab of labs) {
+        const softwares = await db.getSoftwareByLaboratory(lab.id);
+        if (!softwares || softwares.length === 0) {
+          csvContent += `${lab.id},${lab.predio},${lab.bloco || ""},${lab.sala},${lab.estacao || ""},"${lab.nomeContato || ""}","${lab.emailContato || ""}",${lab.ramalContato || ""},,,\n`;
+          continue;
+        }
+        for (const s of softwares) {
+          csvContent += `${lab.id},${lab.predio},${lab.bloco || ""},${lab.sala},${lab.estacao || ""},"${lab.nomeContato || ""}","${lab.emailContato || ""}",${lab.ramalContato || ""},"${s.softwareName}",${s.version || ""},"${s.license}"\n`;
+        }
+      }
+
+      return {
+        success: true,
+        data: Buffer.from(csvContent).toString("base64"),
+        filename: "laboratorios_com_softwares.csv",
+        mimeType: "text/csv",
+      };
+    } catch (error) {
+      throw new Error(`Erro ao exportar laboratórios com softwares: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   }),
 
@@ -97,7 +128,7 @@ export const exportRouter = router({
       reportContent += "-".repeat(60) + "\n";
       reportContent += "ID,Nome,Email Cronograma,Criação,Teste Deploy,Homologação,Aprovação,Implantação\n";
       
-      units.forEach((unit) => {
+  units.forEach((unit: any) => {
         reportContent += `${unit.id},"${unit.name}",${unit.emailCronograma || ""},${unit.criacao || ""},${unit.testeDeploy || ""},${unit.homologacao || ""},${unit.aprovacao || ""},${unit.implantacao || ""}\n`;
       });
 
@@ -108,7 +139,7 @@ export const exportRouter = router({
       reportContent += "-".repeat(60) + "\n";
       reportContent += "ID,Prédio,Bloco,Sala,Nome Contato,Email Contato\n";
       
-      labs.forEach((lab) => {
+  labs.forEach((lab: any) => {
         reportContent += `${lab.id},${lab.predio},${lab.bloco || ""},${lab.sala},"${lab.nomeContato || ""}","${lab.emailContato || ""}"\n`;
       });
 
@@ -121,7 +152,7 @@ export const exportRouter = router({
       
       for (const lab of labs) {
         const softwares = await db.getSoftwareByLaboratory(lab.id);
-        softwares.forEach((software) => {
+  softwares.forEach((software: any) => {
           reportContent += `${lab.predio}-${lab.sala},"${software.softwareName}",${software.version || ""},"${software.license}"\n`;
         });
       }
@@ -152,14 +183,14 @@ export const exportRouter = router({
         if (input.dataType === "units") {
           const units = await db.getAcademicUnits();
           csvContent = "ID,Nome,Email Cronograma,Criação,Teste Deploy,Homologação,Aprovação,Implantação\n";
-          units.forEach((unit) => {
+          units.forEach((unit: any) => {
             csvContent += `${unit.id},"${unit.name}",${unit.emailCronograma || ""},${unit.criacao || ""},${unit.testeDeploy || ""},${unit.homologacao || ""},${unit.aprovacao || ""},${unit.implantacao || ""}\n`;
           });
           filename = "unidades_academicas.csv";
         } else if (input.dataType === "laboratories") {
           const labs = await db.getLaboratories();
           csvContent = "ID,Prédio,Bloco,Sala,Nome Contato,Email Contato,Ramal\n";
-          labs.forEach((lab) => {
+          labs.forEach((lab: any) => {
             csvContent += `${lab.id},${lab.predio},${lab.bloco || ""},${lab.sala},"${lab.nomeContato || ""}","${lab.emailContato || ""}",${lab.ramalContato || ""}\n`;
           });
           filename = "laboratorios.csv";
@@ -168,7 +199,7 @@ export const exportRouter = router({
           csvContent = "Laboratório,Software,Versão,Licença\n";
           for (const lab of labs) {
             const softwares = await db.getSoftwareByLaboratory(lab.id);
-            softwares.forEach((software) => {
+            softwares.forEach((software: any) => {
               csvContent += `${lab.predio}-${lab.sala},"${software.softwareName}",${software.version || ""},"${software.license}"\n`;
             });
           }

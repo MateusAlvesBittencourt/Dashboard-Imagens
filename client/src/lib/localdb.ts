@@ -359,5 +359,25 @@ export const localdb = {
     db.machines = db.machines.filter(m => m.id !== id);
     saveDB(db);
     return db.machines.length < before;
+  },
+  replaceMachinesForLab(laboratoryId: number, newMachines: Omit<LocalMachine, 'id' | 'laboratoryId'>[] | Array<Partial<LocalMachine> & { hostname: string }>) {
+    const db = loadDB();
+    // remove todas existentes desse lab
+    db.machines = db.machines.filter(m => m.laboratoryId !== laboratoryId);
+    // inserir de novo
+    let nextId = (db.machines.at(-1)?.id ?? 0) + 1;
+    for (const m of newMachines) {
+      const toInsert: LocalMachine = {
+        id: nextId++,
+        laboratoryId,
+        hostname: String((m as any).hostname ?? ''),
+        patrimonio: (m as any).patrimonio ?? null,
+        formatted: Boolean((m as any).formatted),
+        formattedAt: (m as any).formattedAt ?? null,
+      };
+      db.machines.push(toInsert);
+    }
+    saveDB(db);
+    return db.machines.filter(m => m.laboratoryId === laboratoryId);
   }
 };
