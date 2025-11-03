@@ -12,6 +12,9 @@ import { isLocalMode } from "@/lib/env";
 import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
 import { localdb } from "@/lib/localdb";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { APP_LOGO } from "@/const";
+import { PageHero } from "@/components/PageHero";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -189,24 +192,50 @@ export default function Dashboard() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <BackButton className="mb-4" />
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard Imagens 2026</h1>
-          <p className="text-slate-600">Gerenciamento de cronograma e laboratórios das unidades acadêmicas</p>
-          {user && <p className="text-sm text-slate-500 mt-2">Conectado como: {user.name}</p>}
-        </div>
+  const heroMeta = (
+    <>
+      <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1 shadow-sm">
+        {labsLoading || unitsLoading ? "Sincronizando dados..." : "Dados atualizados"}
+      </span>
+      {user && (
+        <>
+          <span className="hidden sm:inline text-muted-foreground/70">-</span>
+          <span>
+            Conectado como <span className="font-semibold text-foreground">{user.name}</span>
+          </span>
+        </>
+      )}
+    </>
+  );
 
+  return (
+    <div className="relative min-h-screen bg-background text-foreground">
+      <PageHero
+        badge="Dashboard"
+        title="Dashboard Imagens 2026"
+        description="Gerencie cronogramas, laboratorios, softwares e estacoes com uma visao integrada e moderna."
+        leading={
+          <div className="flex items-center gap-3">
+            <img
+              src={APP_LOGO}
+              alt="Logotipo da empresa"
+              className="h-10 w-auto rounded-lg bg-background/80 p-1 shadow-sm ring-1 ring-border/60"
+            />
+            <BackButton className="h-9 rounded-full border-border/70 px-4 text-sm font-medium tracking-tight hover:border-primary/50 hover:bg-primary/10" />
+          </div>
+        }
+        actions={<ThemeToggle />}
+        meta={heroMeta}
+      />
+
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-12 sm:px-6 lg:px-8">
         {/* Seletor de abas removido a pedido; a aba é definida via query param ?tab=units|labs */}
 
         {/* Units Tab */}
         {activeTab === "units" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-slate-900">Cronograma de Unidades</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Cronograma de Unidades</h2>
               {(user || isLocalMode()) && (
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
@@ -254,7 +283,7 @@ export default function Dashboard() {
 
             {unitsLoading ? (
               <div className="flex justify-center items-center h-32">
-                <Loader2 className="animate-spin text-slate-400" size={32} />
+                <Loader2 className="animate-spin text-muted-foreground/70" size={32} />
               </div>
             ) : units && units.length > 0 ? (
               <div className="grid gap-4">
@@ -300,39 +329,39 @@ export default function Dashboard() {
                         >
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                             <div>
-                              <label className="text-xs text-slate-600">Email Cronograma</label>
+                              <label className="text-xs text-muted-foreground">Email Cronograma</label>
                               <input name="emailCronograma" type="date" defaultValue={formatInputDate(unit.emailCronograma as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Reforço</label>
+                              <label className="text-xs text-muted-foreground">Reforço</label>
                               <input name="emailReforco" type="date" defaultValue={formatInputDate(unit.emailReforco as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Ciência</label>
+                              <label className="text-xs text-muted-foreground">Ciência</label>
                               <input name="cienciaUnidade" type="date" defaultValue={formatInputDate(unit.cienciaUnidade as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Lista Softwares</label>
+                              <label className="text-xs text-muted-foreground">Lista Softwares</label>
                               <input name="listaSoftwares" type="date" defaultValue={formatInputDate(unit.listaSoftwares as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Criação</label>
+                              <label className="text-xs text-muted-foreground">Criação</label>
                               <input name="criacao" type="date" defaultValue={formatInputDate(unit.criacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Teste Deploy</label>
+                              <label className="text-xs text-muted-foreground">Teste Deploy</label>
                               <input name="testeDeploy" type="date" defaultValue={formatInputDate(unit.testeDeploy as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Homologação</label>
+                              <label className="text-xs text-muted-foreground">Homologação</label>
                               <input name="homologacao" type="date" defaultValue={formatInputDate(unit.homologacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Aprovação</label>
+                              <label className="text-xs text-muted-foreground">Aprovação</label>
                               <input name="aprovacao" type="date" defaultValue={formatInputDate(unit.aprovacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-600">Implantação</label>
+                              <label className="text-xs text-muted-foreground">Implantação</label>
                               <input name="implantacao" type="date" defaultValue={formatInputDate(unit.implantacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
                             </div>
                           </div>
@@ -344,32 +373,32 @@ export default function Dashboard() {
                       ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 text-sm">
                           <div>
-                            <p className="text-slate-600 font-medium">Email Cronograma</p>
-                            <p className="text-slate-900">{formatDate(unit.emailCronograma)}</p>
+                            <p className="text-muted-foreground font-medium">Email Cronograma</p>
+                            <p className="text-foreground">{formatDate(unit.emailCronograma)}</p>
                           </div>
                           <div>
-                            <p className="text-slate-600 font-medium">Ciência Unidade</p>
-                            <p className="text-slate-900">{formatDate(unit.cienciaUnidade)}</p>
+                            <p className="text-muted-foreground font-medium">Ciência Unidade</p>
+                            <p className="text-foreground">{formatDate(unit.cienciaUnidade)}</p>
                           </div>
                           <div>
-                            <p className="text-slate-600 font-medium">Criação</p>
-                            <p className="text-slate-900">{formatDate(unit.criacao)}</p>
+                            <p className="text-muted-foreground font-medium">Criação</p>
+                            <p className="text-foreground">{formatDate(unit.criacao)}</p>
                           </div>
                           <div>
-                            <p className="text-slate-600 font-medium">Teste Deploy</p>
-                            <p className="text-slate-900">{formatDate(unit.testeDeploy)}</p>
+                            <p className="text-muted-foreground font-medium">Teste Deploy</p>
+                            <p className="text-foreground">{formatDate(unit.testeDeploy)}</p>
                           </div>
                           <div>
-                            <p className="text-slate-600 font-medium">Homologação</p>
-                            <p className="text-slate-900">{formatDate(unit.homologacao)}</p>
+                            <p className="text-muted-foreground font-medium">Homologação</p>
+                            <p className="text-foreground">{formatDate(unit.homologacao)}</p>
                           </div>
                           <div>
-                            <p className="text-slate-600 font-medium">Aprovação</p>
-                            <p className="text-slate-900">{formatDate(unit.aprovacao as any)}</p>
+                            <p className="text-muted-foreground font-medium">Aprovação</p>
+                            <p className="text-foreground">{formatDate(unit.aprovacao as any)}</p>
                           </div>
                           <div>
-                            <p className="text-slate-600 font-medium">Implantação</p>
-                            <p className="text-slate-900">{formatDate(unit.implantacao as any)}</p>
+                            <p className="text-muted-foreground font-medium">Implantação</p>
+                            <p className="text-foreground">{formatDate(unit.implantacao as any)}</p>
                           </div>
                         </div>
                       )}
@@ -379,7 +408,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <Card>
-                <CardContent className="pt-6 text-center text-slate-500">
+                <CardContent className="pt-6 text-center text-muted-foreground/80">
                   Nenhuma unidade acadêmica cadastrada
                 </CardContent>
               </Card>
@@ -391,7 +420,7 @@ export default function Dashboard() {
         {activeTab === "labs" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-slate-900">Laboratórios</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Laboratórios</h2>
               {(user || isLocalMode()) && (
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
@@ -439,7 +468,7 @@ export default function Dashboard() {
 
             {labsLoading ? (
               <div className="flex justify-center items-center h-32">
-                <Loader2 className="animate-spin text-slate-400" size={32} />
+                <Loader2 className="animate-spin text-muted-foreground/70" size={32} />
               </div>
             ) : labs && labs.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -469,20 +498,20 @@ export default function Dashboard() {
                     <CardContent className="text-sm space-y-2">
                       {lab.nomeContato && (
                         <div>
-                          <p className="text-slate-600 font-medium">Contato</p>
-                          <p className="text-slate-900">{lab.nomeContato}</p>
+                          <p className="text-muted-foreground font-medium">Contato</p>
+                          <p className="text-foreground">{lab.nomeContato}</p>
                         </div>
                       )}
                       {lab.emailContato && (
                         <div>
-                          <p className="text-slate-600 font-medium">Email</p>
-                          <p className="text-slate-900 break-all">{lab.emailContato}</p>
+                          <p className="text-muted-foreground font-medium">Email</p>
+                          <p className="text-foreground break-all">{lab.emailContato}</p>
                         </div>
                       )}
                       {lab.ramalContato && (
                         <div>
-                          <p className="text-slate-600 font-medium">Ramal</p>
-                          <p className="text-slate-900">{lab.ramalContato}</p>
+                          <p className="text-muted-foreground font-medium">Ramal</p>
+                          <p className="text-foreground">{lab.ramalContato}</p>
                         </div>
                       )}
                       {editingId === lab.id ? (
@@ -542,7 +571,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <Card>
-                <CardContent className="pt-6 text-center text-slate-500">
+                <CardContent className="pt-6 text-center text-muted-foreground/80">
                   Nenhum laboratório cadastrado
                 </CardContent>
               </Card>
@@ -558,7 +587,7 @@ export default function Dashboard() {
           }
         }}>
           <DialogContent className="max-w-none w-[60vw] sm:max-w-[98vw] md:max-w-[98vw] lg:max-w-[98vw] xl:max-w-[98vw] max-h-[90vh] p-0 overflow-hidden">
-            <DialogHeader className="px-6 py-4 border-b sticky top-0 bg-white z-10">
+            <DialogHeader className="px-6 py-4 border-b sticky top-0 bg-card z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <DialogTitle>
@@ -611,7 +640,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <table className="w-full text-sm table-auto">
-                <thead className="sticky top-0 bg-white z-10">
+                <thead className="sticky top-0 bg-card z-10">
                   <tr className="text-left border-b">
                     <th className="py-2 pr-3 w-1/2 cursor-pointer select-none" onClick={() => changeSort('softwareName')}>
                       Descrição {softwareSort.key === 'softwareName' ? (softwareSort.dir === 'asc' ? '▲' : '▼') : ''}
@@ -630,7 +659,7 @@ export default function Dashboard() {
                     displaySoftware.map((s: any) => {
                       if (!softwareEditMode) {
                         return (
-                          <tr key={s.id} className="border-b last:border-0 odd:bg-slate-50">
+                          <tr key={s.id} className="border-b last:border-0 odd:bg-muted/40">
                             <td className="py-2 pr-3 break-words whitespace-normal">{s.softwareName}</td>
                             <td className="py-2 pr-3 break-words whitespace-normal">{s.version ?? '—'}</td>
                             <td className="py-2 break-words whitespace-normal">{s.license}</td>
@@ -639,7 +668,7 @@ export default function Dashboard() {
                       }
                       const edit = softwareEdits[s.id] ?? { softwareName: s.softwareName, version: s.version ?? '', license: s.license };
                       return (
-                        <tr key={s.id} className="border-b last:border-0 odd:bg-slate-50">
+                        <tr key={s.id} className="border-b last:border-0 odd:bg-muted/40">
                           <td className="py-2 pr-3">
                             <input
                               className="w-full border rounded px-2 py-1"
@@ -693,7 +722,7 @@ export default function Dashboard() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={3} className="py-6 text-center text-slate-500">Nenhum software cadastrado</td>
+                      <td colSpan={3} className="py-6 text-center text-muted-foreground/80">Nenhum software cadastrado</td>
                     </tr>
                   )}
                 </tbody>
@@ -731,11 +760,11 @@ export default function Dashboard() {
         {activeTab === 'implementation' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-slate-900">Implementação • Estações por Laboratório</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Implementação • Estações por Laboratório</h2>
             </div>
-            <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+            <div className="bg-card rounded-lg shadow p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-end">
               <div className="flex-1 min-w-[260px]">
-                <label className="text-xs text-slate-600">Selecione um laboratório</label>
+                <label className="text-xs text-muted-foreground">Selecione um laboratório</label>
                 <select
                   className="mt-1 w-full border rounded px-2 py-2"
                   onChange={(e) => {
@@ -839,7 +868,7 @@ export default function Dashboard() {
           }
         }}>
           <DialogContent className="max-w-none w-[60vw] sm:max-w-[98vw] md:max-w-[98vw] lg:max-w-[98vw] xl:max-w-[98vw] max-h-[90vh] p-0 overflow-hidden">
-            <DialogHeader className="px-6 py-4 border-b sticky top-0 bg-white z-10">
+            <DialogHeader className="px-6 py-4 border-b sticky top-0 bg-card z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <DialogTitle>
@@ -883,7 +912,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <table className="w-full text-sm table-auto">
-                <thead className="sticky top-0 bg-white z-10">
+                <thead className="sticky top-0 bg-card z-10">
                   <tr className="text-left border-b">
                     <th className="py-2 pr-3 w-1/5">Patrimônio</th>
                     <th className="py-2 pr-3 w-2/5">Descrição</th>
@@ -899,11 +928,11 @@ export default function Dashboard() {
                   }).map((m: any) => {
                     if (!machineEditMode) {
                       return (
-                        <tr key={m.id} className="border-b last:border-0 odd:bg-slate-50">
+                        <tr key={m.id} className="border-b last:border-0 odd:bg-muted/40">
                           <td className="py-2 pr-3 break-words whitespace-normal">{m.patrimonio ?? '—'}</td>
                           <td className="py-2 pr-3 break-words whitespace-normal">{m.hostname}</td>
                           <td className="py-2 pr-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${m.formatted ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${m.formatted ? 'bg-green-100 text-green-700' : 'bg-muted/60 text-muted-foreground'}`}>
                               {m.formatted ? 'Sim' : 'Não'}
                             </span>
                           </td>
@@ -912,7 +941,7 @@ export default function Dashboard() {
                     }
                     const edit = machineEdits[m.id] ?? { hostname: m.hostname ?? '', patrimonio: m.patrimonio ?? '', formatted: Boolean(m.formatted) };
                     return (
-                      <tr key={m.id} className="border-b last:border-0 odd:bg-slate-50">
+                      <tr key={m.id} className="border-b last:border-0 odd:bg-muted/40">
                         <td className="py-2 pr-3">
                           <input
                             className="w-full border rounded px-2 py-1"
@@ -972,7 +1001,7 @@ export default function Dashboard() {
                   })}
                   {(!labMachines || labMachines.length === 0) && (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-500">Nenhuma estação cadastrada</td>
+                      <td colSpan={4} className="py-6 text-center text-muted-foreground/80">Nenhuma estação cadastrada</td>
                     </tr>
                   )}
                 </tbody>
