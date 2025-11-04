@@ -3,11 +3,14 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRef, useState, type ChangeEvent } from "react";
-import { Upload, Download } from "lucide-react";
+import { Upload, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { isLocalMode } from "@/lib/env";
 import { localdb } from "@/lib/localdb";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { PageHero } from "@/components/PageHero";
+import { APP_LOGO } from "@/const";
 
 const downloadBase64 = (data: string, filename: string, mimeType: string = "text/csv") => {
   const binaryString = window.atob(data);
@@ -244,6 +247,8 @@ const normalizeMachines = (rawMachines: any[]): NormalizedMachine[] => {
 
 export default function DataManagement() {
   const { user } = useAuth();
+  const { data: units, isLoading: unitsLoading } = trpc.academicUnits.list.useQuery();
+  const hasUnits = (units?.length ?? 0) > 0;
   const utils = trpc.useUtils();
   const hasLocalAuth = (() => {
     try {
@@ -641,274 +646,337 @@ export default function DataManagement() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-        <div className="max-w-6xl mx-auto">
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-slate-600">Voce precisa estar autenticado para acessar esta pagina.</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="relative min-h-screen bg-background text-foreground">
+        <PageHero
+          title="Autenticacao necessaria"
+          description="Faca login para importar ou exportar dados do cronograma, laboratorios e implementacao."
+          leading={
+            <div className="flex items-center gap-3">
+              <img
+                src={APP_LOGO}
+                alt="Logotipo da empresa"
+                className="h-10 w-auto rounded-lg bg-background/80 p-1 shadow-sm ring-1 ring-border/60"
+              />
+              <BackButton className="h-9 w-fit rounded-full border-border/70 px-4 text-sm font-medium tracking-tight hover:border-primary/50 hover:bg-primary/10" />
+            </div>
+          }
+          actions={
+            <Button
+              size="sm"
+              className="rounded-full px-5"
+              onClick={() => {
+                window.location.href = "/login";
+              }}
+            >
+              Ir para login
+            </Button>
+          }
+          containerClassName="min-h-[420px]"
+        />
       </div>
     );
   }
 
+  const heroMeta = (
+    <>
+      <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1 shadow-sm">
+        {useLocal ? "Modo local ativo" : "Modo servidor"}
+      </span>
+      <span className="hidden sm:inline text-muted-foreground/70">-</span>
+      <span>
+        Sessao de <span className="font-semibold text-foreground">{user.name}</span>
+      </span>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <BackButton className="mb-4" />
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Gerenciamento de Dados</h1>
-          <p className="text-slate-600">Importe ou exporte informacoes do cronograma, dos laboratorios e da implementacao.</p>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
+    <div className="relative min-h-screen bg-background text-foreground">
+      <PageHero
+        badge="Dados"
+        title="Gerenciamento de Dados"
+        description="Importe, exporte e sincronize informacoes das unidades academicas, laboratorios e implementacao."
+        leading={
+          <div className="flex items-center gap-3">
+            <img
+              src={APP_LOGO}
+              alt="Logotipo da empresa"
+              className="h-10 w-auto rounded-lg bg-background/80 p-1 shadow-sm ring-1 ring-border/60"
+            />
+            <BackButton className="h-9 rounded-full border-border/70 px-4 text-sm font-medium tracking-tight hover:border-primary/50 hover:bg-primary/10" />
+          </div>
+        }
+        actions={<ThemeToggle />}
+        meta={heroMeta}
+      />
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-border/60 bg-card/70 p-6 shadow-lg shadow-primary/5 backdrop-blur lg:p-8">
+          <Card className="border border-border/50 bg-background/80 shadow-sm">
             <CardHeader>
-              <div className="flex items-center gap-3">
-                <Upload className="h-6 w-6 text-blue-600" />
-                <div>
-                  <CardTitle>Importar Cronograma</CardTitle>
-                  <CardDescription>Atualize as datas a partir de um arquivo JSON.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                <input
-                  ref={cronogramaFileRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleCronogramaFileChange}
-                  className="hidden"
-                  id="cronograma-file-input"
-                />
-                <label htmlFor="cronograma-file-input" className="cursor-pointer block">
-                  <p className="text-sm font-medium text-slate-900">
-                    {cronogramaFile ? cronogramaFile.name : "Clique para selecionar um arquivo JSON"}
-                  </p>
-                  <p className="text-xs text-slate-600 mt-1">Estrutura esperada: academicUnits[] ou academic_units[]</p>
-                </label>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => cronogramaFileRef.current?.click()} disabled={isImportingCronograma}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Selecionar arquivo
-                </Button>
-                {cronogramaFile && (
-                  <Button variant="outline" onClick={clearCronogramaFile} disabled={isImportingCronograma}>
-                    Remover
-                  </Button>
-                )}
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={handleImportCronograma}
-                disabled={isImportingCronograma || importCronogramaMutation.isPending}
-              >
-                {isImportingCronograma || importCronogramaMutation.isPending ? "Importando..." : "Importar cronograma"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Download className="h-6 w-6 text-green-600" />
-                <div>
-                  <CardTitle>Exportar Cronograma</CardTitle>
-                  <CardDescription>Baixe os dados das unidades para planilhas ou backup.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-600">
-                {useLocal
-                  ? "O cronograma sera exportado como JSON com todas as unidades do armazenamento local."
-                  : "O cronograma sera exportado como CSV gerado pelo servidor."}
-              </p>
-              <Button
-                className="w-full"
-                onClick={handleExportCronograma}
-                disabled={exportCronogramaMutation.isPending}
-              >
-                {exportCronogramaMutation.isPending ? "Gerando arquivo..." : "Exportar cronograma"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Upload className="h-6 w-6 text-blue-600" />
-                <div>
-                  <CardTitle>Importar Laboratorios</CardTitle>
-                  <CardDescription>Atualize os laboratorios a partir de um arquivo JSON.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                <input
-                  ref={labsFileRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleLabsFileChange}
-                  className="hidden"
-                  id="labs-file-input"
-                />
-                <label htmlFor="labs-file-input" className="cursor-pointer block">
-                  <p className="text-sm font-medium text-slate-900">
-                    {labsFile ? labsFile.name : "Clique para selecionar um arquivo JSON"}
-                  </p>
-                  <p className="text-xs text-slate-600 mt-1">Estrutura esperada: laboratories[] ou labs[]</p>
-                </label>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => labsFileRef.current?.click()} disabled={isImportingLabs}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Selecionar arquivo
-                </Button>
-                {labsFile && (
-                  <Button variant="outline" onClick={clearLabsFile} disabled={isImportingLabs}>
-                    Remover
-                  </Button>
-                )}
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={handleImportLaboratories}
-                disabled={isImportingLabs || importLabsMutation.isPending}
-              >
-                {isImportingLabs || importLabsMutation.isPending ? "Importando..." : "Importar laboratorios"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Download className="h-6 w-6 text-green-600" />
-                <div>
-                  <CardTitle>Exportar Laboratorios</CardTitle>
-                  <CardDescription>Baixe os dados para planilhas ou backup.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-600">
-                {useLocal
-                  ? "Os laboratorios serao exportados como JSON do armazenamento local."
-                  : "Os laboratorios serao exportados como CSV gerado pelo servidor."}
-              </p>
-              <Button
-                className="w-full"
-                onClick={handleExportLaboratories}
-                disabled={exportLabsMutation.isPending}
-              >
-                {exportLabsMutation.isPending ? "Gerando arquivo..." : "Exportar laboratorios"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Upload className="h-6 w-6 text-blue-600" />
-                <div>
-                  <CardTitle>Importar Implementacao</CardTitle>
-                  <CardDescription>Traga a lista de maquinas e patrimonios via JSON.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                <input
-                  ref={machinesFileRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleMachinesFileChange}
-                  className="hidden"
-                  id="machines-file-input"
-                />
-                <label htmlFor="machines-file-input" className="cursor-pointer block">
-                  <p className="text-sm font-medium text-slate-900">
-                    {machinesFile ? machinesFile.name : "Clique para selecionar um arquivo JSON"}
-                  </p>
-                  <p className="text-xs text-slate-600 mt-1">Estrutura esperada: machines[]</p>
-                </label>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => machinesFileRef.current?.click()} disabled={isImportingMachines || !useLocal}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Selecionar arquivo
-                </Button>
-                {machinesFile && (
-                  <Button variant="outline" onClick={clearMachinesFile} disabled={isImportingMachines}>
-                    Remover
-                  </Button>
-                )}
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={handleImportMachines}
-                disabled={isImportingMachines || !useLocal}
-              >
-                {isImportingMachines ? "Importando..." : "Importar implementacao"}
-              </Button>
-              {!useLocal && (
-                <p className="text-xs text-slate-500">
-                  Disponivel apenas no modo local por enquanto.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Download className="h-6 w-6 text-green-600" />
-                <div>
-                  <CardTitle>Exportar Implementacao</CardTitle>
-                  <CardDescription>Obtenha os patrimonios para auditoria ou planilhas.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-600">
-                {useLocal
-                  ? "Exporta um JSON com todas as maquinas armazenadas localmente."
-                  : "Tenta coletar todas as maquinas via servidor (quando suportado)."}
-              </p>
-              <Button className="w-full" onClick={handleExportMachines}>
-                Exportar implementacao
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Operacoes adicionais</CardTitle>
-              <CardDescription>Ferramentas extras para administracao local.</CardDescription>
+              <CardTitle>Utilitarios</CardTitle>
+              <CardDescription>Funcoes auxiliares e informacoes das unidades</CardDescription>
             </CardHeader>
             <CardContent>
-              {useLocal ? (
-                <Button
-                  onClick={handleClearLabsLocal}
-                  className="w-full justify-start gap-2"
-                  variant="destructive"
-                >
-                  Apagar TODOS os laboratorios (Local)
-                </Button>
+              {unitsLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="ml-3 text-sm">Carregando unidades...</span>
+                </div>
+              ) : hasUnits ? (
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Upload className="h-6 w-6 text-blue-600" />
+                        <div>
+                          <CardTitle>Importar Cronograma</CardTitle>
+                          <CardDescription>Atualize as datas a partir de um arquivo JSON.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="border-2 border-dashed border-border/60 rounded-lg p-6 text-center">
+                        <input
+                          ref={cronogramaFileRef}
+                          type="file"
+                          accept=".json"
+                          onChange={handleCronogramaFileChange}
+                          className="hidden"
+                          id="cronograma-file-input"
+                        />
+                        <label htmlFor="cronograma-file-input" className="cursor-pointer block">
+                          <p className="text-sm font-medium text-foreground">
+                            {cronogramaFile ? cronogramaFile.name : "Clique para selecionar um arquivo JSON"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Estrutura esperada: academicUnits[] ou academic_units[]</p>
+                        </label>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => cronogramaFileRef.current?.click()} disabled={isImportingCronograma}>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Selecionar arquivo
+                        </Button>
+                        {cronogramaFile && (
+                          <Button variant="outline" onClick={clearCronogramaFile} disabled={isImportingCronograma}>
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleImportCronograma}
+                        disabled={isImportingCronograma || importCronogramaMutation.isPending}
+                      >
+                        {isImportingCronograma || importCronogramaMutation.isPending ? "Importando..." : "Importar cronograma"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Download className="h-6 w-6 text-green-600" />
+                        <div>
+                          <CardTitle>Exportar Cronograma</CardTitle>
+                          <CardDescription>Baixe os dados das unidades para planilhas ou backup.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {useLocal
+                          ? "O cronograma sera exportado como JSON com todas as unidades do armazenamento local."
+                          : "O cronograma sera exportado como CSV gerado pelo servidor."}
+                      </p>
+                      <Button
+                        className="w-full"
+                        onClick={handleExportCronograma}
+                        disabled={exportCronogramaMutation.isPending}
+                      >
+                        {exportCronogramaMutation.isPending ? "Gerando arquivo..." : "Exportar cronograma"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Upload className="h-6 w-6 text-blue-600" />
+                        <div>
+                          <CardTitle>Importar Laboratorios</CardTitle>
+                          <CardDescription>Atualize os laboratorios a partir de um arquivo JSON.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="border-2 border-dashed border-border/60 rounded-lg p-6 text-center">
+                        <input
+                          ref={labsFileRef}
+                          type="file"
+                          accept=".json"
+                          onChange={handleLabsFileChange}
+                          className="hidden"
+                          id="labs-file-input"
+                        />
+                        <label htmlFor="labs-file-input" className="cursor-pointer block">
+                          <p className="text-sm font-medium text-foreground">
+                            {labsFile ? labsFile.name : "Clique para selecionar um arquivo JSON"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Estrutura esperada: laboratories[] ou labs[]</p>
+                        </label>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => labsFileRef.current?.click()} disabled={isImportingLabs}>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Selecionar arquivo
+                        </Button>
+                        {labsFile && (
+                          <Button variant="outline" onClick={clearLabsFile} disabled={isImportingLabs}>
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleImportLaboratories}
+                        disabled={isImportingLabs || importLabsMutation.isPending}
+                      >
+                        {isImportingLabs || importLabsMutation.isPending ? "Importando..." : "Importar laboratorios"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Download className="h-6 w-6 text-green-600" />
+                        <div>
+                          <CardTitle>Exportar Laboratorios</CardTitle>
+                          <CardDescription>Baixe os dados para planilhas ou backup.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {useLocal
+                          ? "Os laboratorios serao exportados como JSON do armazenamento local."
+                          : "Os laboratorios serao exportados como CSV gerado pelo servidor."}
+                      </p>
+                      <Button
+                        className="w-full"
+                        onClick={handleExportLaboratories}
+                        disabled={exportLabsMutation.isPending}
+                      >
+                        {exportLabsMutation.isPending ? "Gerando arquivo..." : "Exportar laboratorios"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Upload className="h-6 w-6 text-blue-600" />
+                        <div>
+                          <CardTitle>Importar Implementacao</CardTitle>
+                          <CardDescription>Traga a lista de maquinas e patrimonios via JSON.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="border-2 border-dashed border-border/60 rounded-lg p-6 text-center">
+                        <input
+                          ref={machinesFileRef}
+                          type="file"
+                          accept=".json"
+                          onChange={handleMachinesFileChange}
+                          className="hidden"
+                          id="machines-file-input"
+                        />
+                        <label htmlFor="machines-file-input" className="cursor-pointer block">
+                          <p className="text-sm font-medium text-foreground">
+                            {machinesFile ? machinesFile.name : "Clique para selecionar um arquivo JSON"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Estrutura esperada: machines[]</p>
+                        </label>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => machinesFileRef.current?.click()} disabled={isImportingMachines || !useLocal}>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Selecionar arquivo
+                        </Button>
+                        {machinesFile && (
+                          <Button variant="outline" onClick={clearMachinesFile} disabled={isImportingMachines}>
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleImportMachines}
+                        disabled={isImportingMachines || !useLocal}
+                      >
+                        {isImportingMachines ? "Importando..." : "Importar implementacao"}
+                      </Button>
+                      {!useLocal && (
+                        <p className="text-xs text-muted-foreground/80">
+                          Disponivel apenas no modo local por enquanto.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Download className="h-6 w-6 text-green-600" />
+                        <div>
+                          <CardTitle>Exportar Implementacao</CardTitle>
+                          <CardDescription>Obtenha os patrimonios para auditoria ou planilhas.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {useLocal
+                          ? "Exporta um JSON com todas as maquinas armazenadas localmente."
+                          : "Tenta coletar todas as maquinas via servidor (quando suportado)."}
+                      </p>
+                      <Button className="w-full" onClick={handleExportMachines}>
+                        Exportar implementacao
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card className="lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle>Operacoes adicionais</CardTitle>
+                      <CardDescription>Ferramentas extras para administracao local.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {useLocal ? (
+                        <Button
+                          onClick={handleClearLabsLocal}
+                          className="w-full justify-start gap-2"
+                          variant="destructive"
+                        >
+                          Apagar TODOS os laboratorios (Local)
+                        </Button>
+                      ) : (
+                        <div className="rounded-lg border border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
+                          Ative o modo local para habilitar a limpeza de laboratorios e softwares nesta tela.
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               ) : (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Ative o modo local para habilitar a limpeza de laboratorios e softwares nesta tela.
+                <div className="flex flex-col items-center gap-4 py-12 text-center text-muted-foreground">
+                  <p className="text-base font-medium text-foreground">Nenhuma unidade cadastrada</p>
+                  <p className="max-w-md text-sm">
+                    Importe dados pela tela de gerenciamento ou crie unidades diretamente no dashboard.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => {
+                      window.location.href = "/data-management";
+                    }}
+                  >
+                    Ir para gerenciamento
+                  </Button>
                 </div>
               )}
             </CardContent>

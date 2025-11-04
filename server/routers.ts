@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
@@ -26,15 +26,15 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         name: z.string(),
-        emailCronograma: z.date().optional(),
-        emailReforco: z.date().optional(),
-        cienciaUnidade: z.date().optional(),
-        listaSoftwares: z.date().optional(),
-        criacao: z.date().optional(),
-        testeDeploy: z.date().optional(),
-        homologacao: z.date().optional(),
-        aprovacao: z.date().optional(),
-        implantacao: z.date().optional(),
+        emailCronograma: z.string().optional(),
+        emailReforco: z.string().optional(),
+        cienciaUnidade: z.string().optional(),
+        listaSoftwares: z.string().optional(),
+        criacao: z.string().optional(),
+        testeDeploy: z.string().optional(),
+        homologacao: z.string().optional(),
+        aprovacao: z.string().optional(),
+        implantacao: z.string().optional(),
       }))
       .mutation(({ input }) => db.createAcademicUnit(input)),
     update: protectedProcedure
@@ -42,15 +42,15 @@ export const appRouter = router({
         id: z.number(),
         data: z.object({
           name: z.string().optional(),
-          emailCronograma: z.date().optional(),
-          emailReforco: z.date().optional(),
-          cienciaUnidade: z.date().optional(),
-          listaSoftwares: z.date().optional(),
-          criacao: z.date().optional(),
-          testeDeploy: z.date().optional(),
-          homologacao: z.date().optional(),
-          aprovacao: z.date().optional(),
-          implantacao: z.date().optional(),
+          emailCronograma: z.string().optional(),
+          emailReforco: z.string().optional(),
+          cienciaUnidade: z.string().optional(),
+          listaSoftwares: z.string().optional(),
+          criacao: z.string().optional(),
+          testeDeploy: z.string().optional(),
+          homologacao: z.string().optional(),
+          aprovacao: z.string().optional(),
+          implantacao: z.string().optional(),
         }),
       }))
       .mutation(({ input }) => db.updateAcademicUnit(input.id, input.data)),
@@ -96,20 +96,57 @@ export const appRouter = router({
         laboratoryId: z.number(),
         softwareName: z.string(),
         version: z.string().optional(),
-        license: z.string(),
+        license: z.enum(['Pago', 'Gratuito']),
       }))
-      .mutation(({ input }) => db.createSoftwareInstallation(input)),
+      .mutation(({ input }) => {
+        const { laboratoryId, ...softwareData } = input;
+        return db.createSoftware(laboratoryId, softwareData);
+      }),
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
+        laboratoryId: z.number(),
         data: z.object({
           softwareName: z.string().optional(),
           version: z.string().optional(),
-          license: z.string().optional(),
+          license: z.enum(['Pago', 'Gratuito']).optional(),
         }),
       }))
-      .mutation(({ input }) => db.updateSoftwareInstallation(input.id, input.data)),
-    delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteSoftwareInstallation(input.id)),
+      .mutation(({ input }) => db.updateSoftware(input.id, input.laboratoryId, input.data)),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number(), laboratoryId: z.number() }))
+      .mutation(({ input }) => db.deleteSoftware(input.id, input.laboratoryId)),
+  }),
+
+  machines: router({
+    getByLaboratory: publicProcedure.input(z.object({ laboratoryId: z.number() })).query(({ input }) => db.getMachinesByLaboratory(input.laboratoryId)),
+    create: protectedProcedure
+      .input(z.object({
+        laboratoryId: z.number(),
+        hostname: z.string(),
+        patrimonio: z.string().optional(),
+        formatted: z.boolean(),
+        formattedAt: z.string().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { laboratoryId, ...machineData } = input;
+        return db.createMachine(laboratoryId, machineData);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        laboratoryId: z.number(),
+        data: z.object({
+            hostname: z.string().optional(),
+            patrimonio: z.string().optional(),
+            formatted: z.boolean().optional(),
+            formattedAt: z.string().optional(),
+        }),
+      }))
+      .mutation(({ input }) => db.updateMachine(input.id, input.laboratoryId, input.data)),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number(), laboratoryId: z.number() }))
+      .mutation(({ input }) => db.deleteMachine(input.id, input.laboratoryId)),
   }),
 
   import: importRouter,

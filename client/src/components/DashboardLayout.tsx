@@ -25,6 +25,7 @@ import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 
 const menuItems = [
@@ -272,21 +273,21 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? APP_TITLE}
-                  </span>
-                </div>
-              </div>
+        <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border/60 bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur lg:px-6">
+          <div className="flex items-center gap-3">
+            {isMobile && <SidebarTrigger className="h-10 w-10 rounded-xl border border-border bg-background/60 shadow-sm" />}
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground/70">
+                Dashboard
+              </span>
+              <span className="text-base font-semibold tracking-tight text-foreground">
+                {activeMenuItem?.label ?? APP_TITLE}
+              </span>
             </div>
           </div>
-        )}
-        <main className="flex-1 p-4">{children}</main>
+          <ThemeToggle />
+        </div>
+        <main className="flex-1 p-4 md:p-5 lg:p-6 xl:p-8">{children}</main>
       </SidebarInset>
     </>
   );

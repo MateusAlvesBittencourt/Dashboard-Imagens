@@ -1,216 +1,265 @@
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import fs from 'fs/promises';
+import path from 'path';
 
-let _db: ReturnType<typeof drizzle> | null = null;
-
-// Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
-  return _db;
+// Tipos para os dados - podem ser movidos para shared/types.ts se necessário
+interface AcademicUnit {
+  id: number;
+  name: string;
+  emailCronograma?: string | Date;
+  emailReforco?: string | Date;
+  cienciaUnidade?: string | Date;
+  listaSoftwares?: string | Date;
+  criacao?: string | Date;
+  testeDeploy?: string | Date;
+  homologacao?: string | Date;
+  aprovacao?: string | Date;
+  implantacao?: string | Date;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
+interface Machine {
+    id: number;
+    laboratoryId: number;
+    hostname: string;
+    patrimonio?: string | null;
+    formatted: boolean;
+    formattedAt?: string | Date | null;
+}
 
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
+interface Software {
+    id: number;
+    laboratoryId: number;
+    softwareName: string;
+    version?: string | null;
+    license: 'Pago' | 'Gratuito';
+}
 
+interface Laboratory {
+  id: number;
+  predio: string;
+  bloco?: string;
+  sala: string;
+  estacao?: string;
+  nomeContato?: string;
+  emailContato?: string;
+  ramalContato?: string;
+  softwares: Software[];
+  machines: Machine[];
+}
+
+
+// Caminhos para os arquivos JSON
+const principalDataPath = path.join(process.cwd(), 'data_principal.json');
+const labsDataPath = path.join(process.cwd(), 'data_labs.json');
+
+// --- Funções auxiliares para ler e escrever JSON ---
+
+async function readData<T>(filePath: string): Promise<T> {
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    const fileContent = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(fileContent);
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
+    console.error(`Erro ao ler o arquivo ${filePath}:`, error);
+    // Se o arquivo não existir ou for inválido, retorna um estado padrão
+    if (filePath.includes('principal')) return { academicUnits: [] } as any;
+    if (filePath.includes('labs')) return { laboratories: [] } as any;
+    return {} as T;
   }
 }
 
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
+async function writeData(filePath: string, data: any): Promise<void> {
+  try {
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.error(`Erro ao escrever no arquivo ${filePath}:`, error);
   }
-
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
-
-import { academicUnits, laboratories, softwareInstallations, laboratoryFeatures, auditLog, InsertAcademicUnit, InsertLaboratory, InsertSoftwareInstallation, InsertLaboratoryFeature, InsertAuditLog } from "../drizzle/schema";
+// --- Implementação das funções de acesso a dados ---
 
 // Academic Units
-export async function getAcademicUnits() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(academicUnits).execute();
+export async function getAcademicUnits(): Promise<AcademicUnit[]> {
+  const data = await readData<{ academicUnits: AcademicUnit[] }>(principalDataPath);
+  return data.academicUnits || [];
 }
 
-export async function getAcademicUnitById(id: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(academicUnits).where(eq(academicUnits.id, id)).limit(1).execute();
-  return result.length > 0 ? result[0] : null;
+export async function getAcademicUnitById(id: number): Promise<AcademicUnit | null> {
+    const units = await getAcademicUnits();
+    return units.find(u => u.id === id) || null;
 }
 
-export async function createAcademicUnit(data: InsertAcademicUnit) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.insert(academicUnits).values(data).execute();
+export async function createAcademicUnit(unitData: Omit<AcademicUnit, 'id'>): Promise<AcademicUnit> {
+    const data = await readData<{ academicUnits: AcademicUnit[] }>(principalDataPath);
+    const units = data.academicUnits || [];
+    const newId = units.length > 0 ? Math.max(...units.map(u => u.id)) + 1 : 1;
+    const newUnit: AcademicUnit = { id: newId, ...unitData };
+    units.push(newUnit);
+    await writeData(principalDataPath, { ...data, academicUnits: units });
+    return newUnit;
 }
 
-export async function updateAcademicUnit(id: number, data: Partial<InsertAcademicUnit>) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.update(academicUnits).set(data).where(eq(academicUnits.id, id)).execute();
+export async function updateAcademicUnit(id: number, updateData: Partial<AcademicUnit>): Promise<AcademicUnit | null> {
+    const data = await readData<{ academicUnits: AcademicUnit[] }>(principalDataPath);
+    const units = data.academicUnits || [];
+    const unitIndex = units.findIndex(u => u.id === id);
+    if (unitIndex === -1) return null;
+
+    const updatedUnit = { ...units[unitIndex], ...updateData };
+    units[unitIndex] = updatedUnit;
+    await writeData(principalDataPath, { ...data, academicUnits: units });
+    return updatedUnit;
 }
+
 
 // Laboratories
-export async function getLaboratories() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(laboratories).execute();
+export async function getLaboratories(): Promise<Omit<Laboratory, 'softwares' | 'machines'>[]> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    // Retorna os laboratórios sem os detalhes de software e máquinas para a lista principal
+    return (data.laboratories || []).map(({ softwares, machines, ...lab }) => lab);
 }
 
-export async function getLaboratoryById(id: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(laboratories).where(eq(laboratories.id, id)).limit(1).execute();
-  return result.length > 0 ? result[0] : null;
+export async function getLaboratoryById(id: number): Promise<Laboratory | null> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    return (data.laboratories || []).find(l => l.id === id) || null;
 }
 
-export async function createLaboratory(data: InsertLaboratory) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.insert(laboratories).values(data).execute();
+export async function createLaboratory(labData: Omit<Laboratory, 'id' | 'softwares' | 'machines'>): Promise<Laboratory> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const newId = labs.length > 0 ? Math.max(...labs.map(l => l.id)) + 1 : 1;
+    const newLab: Laboratory = { id: newId, ...labData, softwares: [], machines: [] };
+    labs.push(newLab);
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return newLab;
 }
 
-export async function updateLaboratory(id: number, data: Partial<InsertLaboratory>) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.update(laboratories).set(data).where(eq(laboratories.id, id)).execute();
+export async function updateLaboratory(id: number, updateData: Partial<Omit<Laboratory, 'id' | 'softwares' | 'machines'>>): Promise<Laboratory | null> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === id);
+    if (labIndex === -1) return null;
+
+    const updatedLab = { ...labs[labIndex], ...updateData };
+    labs[labIndex] = updatedLab;
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return updatedLab;
 }
 
-export async function deleteLaboratory(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  // Remover softwares vinculados ao laboratório para manter integridade
-  await db.delete(softwareInstallations).where(eq(softwareInstallations.laboratoryId, id)).execute();
-  // Remover features e auditoria se aplicável
-  await db.delete(laboratoryFeatures).where(eq(laboratoryFeatures.laboratoryId, id)).execute();
-  return db.delete(laboratories).where(eq(laboratories.id, id)).execute();
+export async function deleteLaboratory(id: number): Promise<{ success: boolean }> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const updatedLabs = labs.filter(l => l.id !== id);
+    
+    if (labs.length === updatedLabs.length) return { success: false }; // Nenhum lab foi removido
+
+    await writeData(labsDataPath, { ...data, laboratories: updatedLabs });
+    return { success: true };
 }
 
-// Software Installations
-export async function getSoftwareByLaboratory(laboratoryId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(softwareInstallations).where(eq(softwareInstallations.laboratoryId, laboratoryId)).execute();
+// Software
+export async function getSoftwareByLaboratory(laboratoryId: number): Promise<Software[]> {
+    const lab = await getLaboratoryById(laboratoryId);
+    return lab?.softwares || [];
 }
 
-export async function createSoftwareInstallation(data: InsertSoftwareInstallation) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.insert(softwareInstallations).values(data).execute();
+export async function createSoftware(laboratoryId: number, softwareData: Omit<Software, 'id' | 'laboratoryId'>): Promise<Software> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === laboratoryId);
+    if (labIndex === -1) throw new Error('Laboratório não encontrado');
+
+    const lab = labs[labIndex];
+    const newId = lab.softwares.length > 0 ? Math.max(...lab.softwares.map(s => s.id)) + 1 : 1;
+    const newSoftware: Software = { id: newId, laboratoryId, ...softwareData };
+    lab.softwares.push(newSoftware);
+
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return newSoftware;
 }
 
-export async function updateSoftwareInstallation(id: number, data: Partial<InsertSoftwareInstallation>) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.update(softwareInstallations).set(data).where(eq(softwareInstallations.id, id)).execute();
+export async function updateSoftware(id: number, laboratoryId: number, updateData: Partial<Software>): Promise<Software | null> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === laboratoryId);
+    if (labIndex === -1) return null;
+
+    const lab = labs[labIndex];
+    const swIndex = lab.softwares.findIndex(s => s.id === id);
+    if (swIndex === -1) return null;
+
+    const updatedSoftware = { ...lab.softwares[swIndex], ...updateData };
+    lab.softwares[swIndex] = updatedSoftware;
+
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return updatedSoftware;
 }
 
-export async function deleteSoftwareInstallation(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.delete(softwareInstallations).where(eq(softwareInstallations.id, id)).execute();
+export async function deleteSoftware(id: number, laboratoryId: number): Promise<{ success: boolean }> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === laboratoryId);
+    if (labIndex === -1) return { success: false };
+
+    const lab = labs[labIndex];
+    const originalLength = lab.softwares.length;
+    lab.softwares = lab.softwares.filter(s => s.id !== id);
+
+    if (lab.softwares.length === originalLength) return { success: false };
+
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return { success: true };
 }
 
-// Laboratory Features
-export async function getLaboratoryFeatures(laboratoryId: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(laboratoryFeatures).where(eq(laboratoryFeatures.laboratoryId, laboratoryId)).limit(1).execute();
-  return result.length > 0 ? result[0] : null;
+
+// Machines
+export async function getMachinesByLaboratory(laboratoryId: number): Promise<Machine[]> {
+    const lab = await getLaboratoryById(laboratoryId);
+    return lab?.machines || [];
 }
 
-export async function createLaboratoryFeatures(data: InsertLaboratoryFeature) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.insert(laboratoryFeatures).values(data).execute();
+export async function createMachine(laboratoryId: number, machineData: Omit<Machine, 'id' | 'laboratoryId'>): Promise<Machine> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === laboratoryId);
+    if (labIndex === -1) throw new Error('Laboratório não encontrado');
+
+    const lab = labs[labIndex];
+    const newId = lab.machines.length > 0 ? Math.max(...lab.machines.map(m => m.id)) + 1 : 1;
+    const newMachine: Machine = { id: newId, laboratoryId, ...machineData, formatted: machineData.formatted ?? false };
+    lab.machines.push(newMachine);
+
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return newMachine;
 }
 
-export async function updateLaboratoryFeatures(id: number, data: Partial<InsertLaboratoryFeature>) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.update(laboratoryFeatures).set(data).where(eq(laboratoryFeatures.id, id)).execute();
+export async function updateMachine(id: number, laboratoryId: number, updateData: Partial<Machine>): Promise<Machine | null> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === laboratoryId);
+    if (labIndex === -1) return null;
+
+    const lab = labs[labIndex];
+    const machineIndex = lab.machines.findIndex(m => m.id === id);
+    if (machineIndex === -1) return null;
+
+    const updatedMachine = { ...lab.machines[machineIndex], ...updateData };
+    lab.machines[machineIndex] = updatedMachine;
+
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return updatedMachine;
 }
 
-// Audit Log
-export async function createAuditLog(data: InsertAuditLog) {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  return db.insert(auditLog).values(data).execute();
-}
+export async function deleteMachine(id: number, laboratoryId: number): Promise<{ success: boolean }> {
+    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+    const labs = data.laboratories || [];
+    const labIndex = labs.findIndex(l => l.id === laboratoryId);
+    if (labIndex === -1) return { success: false };
 
-export async function getAuditLog(entityType: string, entityId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(auditLog).where(
-    eq(auditLog.entityType, entityType) && eq(auditLog.entityId, entityId)
-  ).execute();
+    const lab = labs[labIndex];
+    const originalLength = lab.machines.length;
+    lab.machines = lab.machines.filter(m => m.id !== id);
+
+    if (lab.machines.length === originalLength) return { success: false };
+
+    await writeData(labsDataPath, { ...data, laboratories: labs });
+    return { success: true };
 }
