@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
@@ -21,7 +21,12 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+  // Express 5: não use padrões de rota; deixar sem path e filtrar manualmente
+    app.use(async (req: Request, res: Response, next: NextFunction) => {
+    // Ignore APIs e requisições que não são GET
+    if (req.method !== "GET" || req.originalUrl.startsWith("/api/")) {
+      return next();
+    }
     const url = req.originalUrl;
 
     try {
@@ -60,8 +65,10 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // Express 5: fallback para index.html
+  // Fallback SPA em prod sem padrão de rota (compatível com Express 5)
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/api/") || req.path.includes(".")) return next();
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

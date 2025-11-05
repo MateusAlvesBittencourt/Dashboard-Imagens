@@ -1,11 +1,13 @@
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import * as db from "../db";
 import fs from "fs";
 import path from "path";
 
+const importProcedure = process.env.VITE_LOCAL_MODE === 'true' ? publicProcedure : protectedProcedure;
+
 export const importRouter = router({
-  importFromJson: protectedProcedure
+  importFromJson: importProcedure
     .input(z.object({
       filePath: z.string().optional(),
       content: z.string().optional(), // conteúdo JSON direto do cliente
@@ -65,22 +67,67 @@ export const importRouter = router({
           return labsMap;
         };
 
-        // Importar unidades acadêmicas
-        if (data.academic_units && Array.isArray(data.academic_units)) {
-          for (const unit of data.academic_units) {
+        // Função auxiliar para normalizar datas (aceita vários formatos)
+        const normalizeDate = (value: any): Date | undefined => {
+          if (!value || value === null || value === "") return undefined;
+          try {
+            // Tenta converter diretamente
+            const date = new Date(value);
+            // Verifica se é uma data válida
+            if (isNaN(date.getTime())) return undefined;
+            return date;
+          } catch {
+            return undefined;
+          }
+        };
+
+        // Importar unidades acadêmicas: aceita academic_units | academicUnits | cronograma | array direta
+        const rawUnits = Array.isArray((data as any)?.academic_units)
+          ? (data as any).academic_units
+          : Array.isArray((data as any)?.academicUnits)
+          ? (data as any).academicUnits
+          : Array.isArray((data as any)?.cronograma)
+          ? (data as any).cronograma
+          : Array.isArray(data)
+          ? (data as any)
+          : null;
+        if (rawUnits && Array.isArray(rawUnits)) {
+          const existingUnits = await db.getAcademicUnits();
+          for (const unit of rawUnits) {
             try {
-              await db.createAcademicUnit({
-                name: unit.name,
-                emailCronograma: unit.emailCronograma ? new Date(unit.emailCronograma) : undefined,
-                emailReforco: unit.emailReforco ? new Date(unit.emailReforco) : undefined,
-                cienciaUnidade: unit.cienciaUnidade ? new Date(unit.cienciaUnidade) : undefined,
-                listaSoftwares: unit.listaSoftwares ? new Date(unit.listaSoftwares) : undefined,
-                criacao: unit.criacao ? new Date(unit.criacao) : undefined,
-                testeDeploy: unit.testeDeploy ? new Date(unit.testeDeploy) : undefined,
-                homologacao: unit.homologacao ? new Date(unit.homologacao) : undefined,
-                aprovacao: unit.aprovacao ? new Date(unit.aprovacao) : undefined,
-                implantacao: unit.implantacao ? new Date(unit.implantacao) : undefined,
-              });
+              const unitId = typeof unit.id === "number" ? unit.id : null;
+              const unitName = String(unit.name || "").trim();
+              
+              if (!unitName) {
+                console.warn(`[Import] Unidade sem nome ignorada.`);
+                continue;
+              }
+
+              // Verifica se já existe por ID ou por nome
+              const existingById = unitId ? existingUnits.find(u => u.id === unitId) : null;
+              const existingByName = existingUnits.find(u => u.name === unitName);
+              const existingUnit = existingById || existingByName;
+
+              const unitData = {
+                name: unitName,
+                emailCronograma: normalizeDate(unit.emailCronograma),
+                emailReforco: normalizeDate(unit.emailReforco),
+                cienciaUnidade: normalizeDate(unit.cienciaUnidade),
+                listaSoftwares: normalizeDate(unit.listaSoftwares),
+                criacao: normalizeDate(unit.criacao),
+                testeDeploy: normalizeDate(unit.testeDeploy),
+                homologacao: normalizeDate(unit.homologacao),
+                aprovacao: normalizeDate(unit.aprovacao),
+                implantacao: normalizeDate(unit.implantacao),
+              };
+
+              if (existingUnit) {
+                // Atualiza unidade existente
+                await db.updateAcademicUnit(existingUnit.id, unitData);
+              } else {
+                // Cria nova unidade
+                await db.createAcademicUnit(unitData);
+              }
               importedUnits++;
             } catch (error) {
               console.error(`Erro ao importar unidade ${unit.name}:`, error);
@@ -88,9 +135,14 @@ export const importRouter = router({
           }
         }
 
-        // Importar laboratórios
-        if (data.laboratories && Array.isArray(data.laboratories)) {
-          for (const lab of data.laboratories) {
+        // Importar laboratórios: aceita laboratories | labs
+        const rawLabs = Array.isArray((data as any)?.laboratories)
+          ? (data as any).laboratories
+          : Array.isArray((data as any)?.labs)
+          ? (data as any).labs
+          : null;
+        if (rawLabs && Array.isArray(rawLabs)) {
+          for (const lab of rawLabs) {
             try {
               // createLaboratory agora aceita ID opcional; se fornecido e existir, atualiza
               await db.createLaboratory({

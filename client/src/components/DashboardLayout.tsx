@@ -285,10 +285,14 @@ function DashboardLayoutContent({
               </span>
             </div>
           </div>
-          <ThemeToggle />
         </div>
         <main className="flex-1 p-4 md:p-5 lg:p-6 xl:p-8">{children}</main>
       </SidebarInset>
+
+      {/* Botão de tema fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
     </>
   );
 }

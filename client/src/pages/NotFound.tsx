@@ -3,6 +3,7 @@ import BackButton from "@/components/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Home } from "lucide-react";
 import { useLocation } from "wouter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function NotFound() {
   const [, setLocation] = useLocation();
@@ -52,6 +53,11 @@ export default function NotFound() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Botão de tema fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
     </div>
   );
 }

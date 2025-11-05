@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Edit2, Trash2 } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, Building2, Monitor, Search, CheckCircle2, XCircle, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { isLocalMode } from "@/lib/env";
@@ -15,6 +15,80 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { APP_LOGO } from "@/const";
 import { PageHero } from "@/components/PageHero";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
+// Componente para Card de Laboratório
+function LaboratoryCard({ lab, onSelect }: { lab: any; onSelect: (id: number) => void }) {
+  const { data: machines } = trpc.machines.getByLaboratory.useQuery(
+    { laboratoryId: lab.id },
+    { enabled: true }
+  );
+  const machinesCount = machines?.length ?? 0;
+  const formattedCount = machines?.filter((m: any) => m.formatted).length ?? 0;
+
+  return (
+    <Card
+      className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 hover:-translate-y-1"
+      onClick={() => onSelect(lab.id)}
+    >
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">
+                {lab.predio}
+                {lab.bloco && ` • ${lab.bloco}`}
+              </CardTitle>
+              <CardDescription className="mt-1">Sala {lab.sala}</CardDescription>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <Monitor className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Total:</span>
+            <span className="font-semibold text-foreground">{machinesCount}</span>
+          </div>
+          {machinesCount > 0 && (
+            <div className="flex items-center gap-1">
+              <Badge variant={formattedCount === machinesCount ? "default" : "secondary"} className="text-xs">
+                {formattedCount}/{machinesCount} formatadas
+              </Badge>
+            </div>
+          )}
+        </div>
+        {lab.nomeContato && (
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">Contato: </span>
+            {lab.nomeContato}
+          </div>
+        )}
+        {lab.estacao && (
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">Estação: </span>
+            {lab.estacao}
+          </div>
+        )}
+        <Button
+          className="w-full mt-2"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(lab.id);
+          }}
+        >
+          <Monitor className="mr-2 h-4 w-4" />
+          Gerenciar Estações
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -41,6 +115,7 @@ export default function Dashboard() {
   const [machineEditMode, setMachineEditMode] = useState(false);
   const [machineEdits, setMachineEdits] = useState<Record<number, { hostname: string; patrimonio: string; formatted: boolean }>>({});
   const [machineSearch, setMachineSearch] = useState("");
+  const [labSearch, setLabSearch] = useState("");
 
   // Queries
   const { data: units, isLoading: unitsLoading, refetch: refetchUnits } = trpc.academicUnits.list.useQuery();
@@ -225,7 +300,6 @@ export default function Dashboard() {
             <BackButton />
           </div>
         }
-        actions={<ThemeToggle />}
         meta={heroMeta}
       />
 
@@ -787,71 +861,122 @@ export default function Dashboard() {
         {/* Implementation Tab */}
         {activeTab === 'implementation' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-foreground">Implementação • Estações por Laboratório</h2>
-            </div>
-            <div className="bg-card rounded-lg shadow p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-              <div className="flex-1 min-w-[260px]">
-                <label className="text-xs text-muted-foreground">Selecione um laboratório</label>
-                <select
-                  className="mt-1 w-full border rounded px-2 py-2"
-                  onChange={(e) => {
-                    const id = Number(e.target.value || 0);
-                    setMachineDialogLabId(Number.isFinite(id) && id > 0 ? id : null);
-                  }}
-                  value={machineDialogLabId ?? ''}
-                >
-                  <option value="">-- Escolha --</option>
-                  {(labs as any[] | undefined)?.map((l) => (
-                    <option key={l.id} value={l.id}>{`Prédio ${l.predio} - Sala ${l.sala}`}</option>
-                  ))}
-                </select>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">Implementação • Estações por Laboratório</h2>
+                <p className="text-sm text-muted-foreground mt-1">Gerencie as estações de trabalho de cada laboratório</p>
               </div>
-              <div className="flex items-end gap-2">
-                <Button
-                  disabled={machineDialogLabId == null}
-                  onClick={() => {
-                    // apenas garante que o diálogo será renderizado; state já está setado pelo select
-                    if (machineDialogLabId == null) return;
-                  }}
-                >
-                  Gerenciar Estações
-                </Button>
-                {(isLocalMode() || (typeof window !== 'undefined' && localStorage.getItem('local-auth'))) && (
-                  <>
-                      <Button
-                        variant="outline"
-                        disabled={machineDialogLabId == null}
-                        onClick={() => {
-                          if (machineDialogLabId == null) return;
-                          const lab = (labs as any[] | undefined)?.find(l => l.id === machineDialogLabId);
-                          const data = {
-                            laboratoryId: machineDialogLabId,
-                            predio: lab?.predio,
-                            sala: lab?.sala,
-                            machines: (labMachines as any[] | undefined) ?? [],
-                          };
-                          const json = JSON.stringify(data, null, 2);
-                          const blob = new Blob([json], { type: 'application/json; charset=utf-8' });
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `lab_${lab?.predio ?? ''}_${lab?.sala ?? ''}_estacoes.json`;
-                          document.body.appendChild(a);
-                          a.click();
-                          window.URL.revokeObjectURL(url);
-                          document.body.removeChild(a);
-                        }}
+            </div>
+
+            {/* Barra de busca */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar laboratório por prédio, sala ou contato..."
+                value={labSearch}
+                onChange={(e) => setLabSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Grid de Cards de Laboratórios */}
+            {labsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {((labs as any[] | undefined) ?? [])
+                  .filter((lab: any) => {
+                    const search = labSearch.trim().toLowerCase();
+                    if (!search) return true;
+                    const searchText = `${lab.predio ?? ''} ${lab.sala ?? ''} ${lab.bloco ?? ''} ${lab.nomeContato ?? ''} ${lab.emailContato ?? ''}`.toLowerCase();
+                    return searchText.includes(search);
+                  })
+                  .map((lab: any) => {
+                    // Buscar máquinas deste laboratório para mostrar contagem
+                    const machinesQuery = trpc.machines.getByLaboratory.useQuery(
+                      { laboratoryId: lab.id },
+                      { enabled: false }
+                    );
+                    const machinesCount = machinesQuery.data?.length ?? 0;
+
+                    return (
+                      <Card
+                        key={lab.id}
+                        className="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 hover:-translate-y-1"
+                        onClick={() => setMachineDialogLabId(lab.id)}
                       >
-                        Exportar Estações (JSON)
-                      </Button>
-                      {/* O botão de importação foi removido pois a funcionalidade local não é mais suportada */}
-                    </>
-                  )}
-                </div>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                                <Building2 className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg">
+                                  {lab.predio}
+                                  {lab.bloco && ` • ${lab.bloco}`}
+                                </CardTitle>
+                                <CardDescription className="mt-1">Sala {lab.sala}</CardDescription>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Monitor className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Estações:</span>
+                            <span className="font-semibold text-foreground">{machinesCount}</span>
+                          </div>
+                          {lab.nomeContato && (
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">Contato: </span>
+                              {lab.nomeContato}
+                            </div>
+                          )}
+                          {lab.estacao && (
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">Estação: </span>
+                              {lab.estacao}
+                            </div>
+                          )}
+                          <Button
+                            className="w-full mt-2"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMachineDialogLabId(lab.id);
+                            }}
+                          >
+                            <Monitor className="mr-2 h-4 w-4" />
+                            Gerenciar Estações
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
               </div>
-            </div>
-          )}        {/* Dialog de Máquinas por Laboratório */}
+            )}
+
+            {((labs as any[] | undefined) ?? []).filter((lab: any) => {
+              const search = labSearch.trim().toLowerCase();
+              if (!search) return true;
+              const searchText = `${lab.predio ?? ''} ${lab.sala ?? ''} ${lab.bloco ?? ''} ${lab.nomeContato ?? ''} ${lab.emailContato ?? ''}`.toLowerCase();
+              return searchText.includes(search);
+            }).length === 0 && !labsLoading && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum laboratório encontrado</p>
+                {labSearch && (
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={() => setLabSearch('')}>
+                    Limpar busca
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}        {/* Dialog de Máquinas por Laboratório */}
         <Dialog open={machineDialogLabId != null} onOpenChange={(open) => {
           if (!open) {
             setMachineDialogLabId(null);
@@ -1026,6 +1151,11 @@ export default function Dashboard() {
             )}
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Botão de tema fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeToggle />
       </div>
     </div>
   );

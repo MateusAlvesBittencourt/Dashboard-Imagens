@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { APP_TITLE } from "@/const";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type LocalAuth = {
   username: string;
@@ -84,6 +85,11 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Botão de tema fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
     </div>
   );
 }

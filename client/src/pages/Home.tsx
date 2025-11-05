@@ -64,7 +64,6 @@ export default function Home() {
                 </Button>
               </div>
             )}
-            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -234,6 +233,11 @@ export default function Home() {
           <p>© 2025 Dashboard Imagens 2026. Todos os direitos reservados.</p>
         </div>
       </footer>
+
+      {/* Botão de tema fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
     </div>
   );
 }

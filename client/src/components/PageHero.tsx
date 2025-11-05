@@ -51,7 +51,7 @@ export function PageHero({
               </div>
             )}
           </div>
-          {actions && <div className="shrink-0">{actions}</div>}
+          {actions && <div className="shrink-0 ml-auto md:ml-12 lg:ml-16">{actions}</div>}
         </div>
       </div>
     </div>

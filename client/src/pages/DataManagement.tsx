@@ -642,7 +642,6 @@ export default function DataManagement() {
             <BackButton className="h-9 rounded-full border-border/70 px-4 text-sm font-medium tracking-tight hover:border-primary/50 hover:bg-primary/10" />
           </div>
         }
-        actions={<ThemeToggle />}
         meta={heroMeta}
       />
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
@@ -923,6 +922,11 @@ export default function DataManagement() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Botão de tema fixo no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ThemeToggle />
       </div>
     </div>
   );
