@@ -4,7 +4,16 @@ import * as db from "../db";
 import fs from "fs";
 import path from "path";
 
-const importProcedure = process.env.VITE_LOCAL_MODE === 'true' ? publicProcedure : protectedProcedure;
+// Verifica se está em modo local (sem autenticação obrigatória)
+// Em produção, se não houver autenticação configurada, permite importação pública
+const isLocalMode = () => {
+  // Verifica se está em desenvolvimento ou se não há configuração de autenticação
+  return process.env.NODE_ENV !== "production" || 
+         !process.env.VITE_APP_ID || 
+         process.env.VITE_LOCAL_MODE === "true";
+};
+
+const importProcedure = isLocalMode() ? publicProcedure : protectedProcedure;
 
 export const importRouter = router({
   importFromJson: importProcedure
@@ -14,14 +23,28 @@ export const importRouter = router({
     }))
     .mutation(async ({ input }) => {
       try {
+        // Log para debug
+        console.log('[Import] Iniciando importação...', {
+          hasContent: !!input.content,
+          contentLength: input.content?.length || 0,
+          filePath: input.filePath,
+          mode: process.env.NODE_ENV,
+          localMode: isLocalMode()
+        });
+
         // 1) Se conteúdo veio do cliente, usa ele; senão tenta ler arquivo
         let data: any;
         if (input.content && input.content.trim().length > 0) {
-          data = JSON.parse(input.content);
+          try {
+            data = JSON.parse(input.content);
+          } catch (parseError) {
+            console.error('[Import] Erro ao fazer parse do JSON:', parseError);
+            throw new Error(`Erro ao processar JSON: ${parseError instanceof Error ? parseError.message : 'Erro desconhecido'}`);
+          }
         } else {
           const dataPath = input.filePath || path.join(process.cwd(), "import_data.json");
           if (!fs.existsSync(dataPath)) {
-            throw new Error("Arquivo de importação não encontrado");
+            throw new Error(`Arquivo de importação não encontrado: ${dataPath}`);
           }
           const fileContent = fs.readFileSync(dataPath, "utf-8");
           data = JSON.parse(fileContent);
@@ -70,15 +93,53 @@ export const importRouter = router({
         // Função auxiliar para normalizar datas (aceita vários formatos)
         const normalizeDate = (value: any): Date | undefined => {
           if (!value || value === null || value === "") return undefined;
-          try {
-            // Tenta converter diretamente
-            const date = new Date(value);
-            // Verifica se é uma data válida
-            if (isNaN(date.getTime())) return undefined;
-            return date;
-          } catch {
-            return undefined;
+          
+          // Se já é um objeto Date, retorna diretamente
+          if (value instanceof Date) {
+            return isNaN(value.getTime()) ? undefined : value;
           }
+          
+          // Se é string, tenta converter
+          if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (trimmed === "" || trimmed === "null" || trimmed === "undefined") return undefined;
+            
+            try {
+              // Tenta formato ISO primeiro (2025-07-25T00:00:00.000Z)
+              let date = new Date(trimmed);
+              
+              // Se não funcionou, tenta formato brasileiro (2025-07-25 00:00:00)
+              if (isNaN(date.getTime())) {
+                const dateOnly = trimmed.split(" ")[0]; // Pega só a parte da data
+                date = new Date(dateOnly);
+              }
+              
+              // Se ainda não funcionou, tenta formato DD/MM/YYYY
+              if (isNaN(date.getTime()) && trimmed.includes("/")) {
+                const [day, month, year] = trimmed.split("/");
+                date = new Date(`${year}-${month}-${day}`);
+              }
+              
+              // Verifica se é uma data válida
+              if (isNaN(date.getTime())) {
+                console.warn(`[Import] Data inválida ignorada: ${trimmed}`);
+                return undefined;
+              }
+              
+              return date;
+            } catch (error) {
+              console.warn(`[Import] Erro ao converter data "${trimmed}":`, error);
+              return undefined;
+            }
+          }
+          
+          // Se é número (timestamp), converte
+          if (typeof value === "number") {
+            const date = new Date(value);
+            return isNaN(date.getTime()) ? undefined : date;
+          }
+          
+          return undefined;
         };
 
         // Importar unidades acadêmicas: aceita academic_units | academicUnits | cronograma | array direta
@@ -253,35 +314,59 @@ export const importRouter = router({
 
         // Importar máquinas (implementação)
         if (data.machines && Array.isArray(data.machines)) {
+          console.log(`[Import] Processando ${data.machines.length} máquinas...`);
           for (const machine of data.machines) {
             try {
               const rawLabId = machine?.laboratoryId ?? machine?.laboratory_id ?? machine?.labId ?? machine?.lab_id;
               const laboratoryId = Number(rawLabId);
               if (!laboratoryId || Number.isNaN(laboratoryId)) {
-                console.warn(`[Import] Máquina sem laboratoryId válido ignorada.`);
+                console.warn(`[Import] Máquina sem laboratoryId válido ignorada. Dados:`, {
+                  id: machine?.id,
+                  hostname: machine?.hostname,
+                  patrimonio: machine?.patrimonio
+                });
                 continue;
               }
+              
               const lab = await db.getLaboratoryById(laboratoryId as any);
               if (!lab) {
-                console.warn(`[Import] Laboratório ${laboratoryId} não encontrado para vincular máquina.`);
+                console.warn(`[Import] Laboratório ${laboratoryId} não encontrado para vincular máquina. Hostname: ${machine?.hostname}`);
                 continue;
               }
+              
               const hostname = String(machine?.hostname ?? machine?.name ?? "").trim();
+              if (!hostname) {
+                console.warn(`[Import] Máquina sem hostname ignorada. LaboratoryId: ${laboratoryId}`);
+                continue;
+              }
+              
               const patrimonio = machine?.patrimonio ?? machine?.assetTag ?? null;
               let formatted = Boolean(machine?.formatted);
               if (typeof machine?.formatted === "string") {
                 formatted = ["true", "1", "yes", "sim"].includes(machine.formatted.toLowerCase());
               }
+              
+              // Normalizar formattedAt
               const formattedAt = machine?.formattedAt ?? machine?.formatted_at ?? null;
+              const normalizedFormattedAt = formattedAt ? normalizeDate(formattedAt) : null;
+              
               await db.createMachine(laboratoryId, {
                 hostname,
-                patrimonio,
+                patrimonio: patrimonio ? String(patrimonio).trim() : null,
                 formatted,
-                formattedAt,
+                formattedAt: normalizedFormattedAt ?? null,
               } as any);
               importedMachines++;
             } catch (error) {
-              console.error(`Erro ao importar máquina:`, error);
+              console.error(`[Import] Erro ao importar máquina:`, {
+                error: error instanceof Error ? error.message : String(error),
+                machine: {
+                  id: machine?.id,
+                  laboratoryId: machine?.laboratoryId ?? machine?.laboratory_id,
+                  hostname: machine?.hostname,
+                  patrimonio: machine?.patrimonio
+                }
+              });
             }
           }
         }
@@ -297,8 +382,18 @@ export const importRouter = router({
           },
         };
       } catch (error) {
-        console.error("Erro na importação:", error);
-        throw new Error(`Erro ao importar dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+        console.error("[Import] Erro na importação:", error);
+        const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+        console.error("[Import] Detalhes do erro:", {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          input: {
+            hasContent: !!input.content,
+            contentLength: input.content?.length || 0,
+            filePath: input.filePath
+          }
+        });
+        throw new Error(`Erro ao importar dados: ${errorMessage}`);
       }
     }),
 });

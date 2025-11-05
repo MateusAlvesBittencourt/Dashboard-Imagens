@@ -324,8 +324,17 @@ export default function DataManagement() {
         parsed = JSON.parse(rawContent);
       } catch (error) {
         toast.error("Arquivo JSON invalido.");
+        console.error("Erro ao fazer parse do JSON:", error);
         return;
       }
+
+      console.log("[Import] Estrutura do arquivo parseado:", {
+        keys: Object.keys(parsed),
+        hasAcademicUnits: !!parsed?.academicUnits,
+        hasAcademic_units: !!parsed?.academic_units,
+        hasCronograma: !!parsed?.cronograma,
+        isArray: Array.isArray(parsed)
+      });
 
       const rawUnits = Array.isArray(parsed?.academicUnits)
         ? parsed.academicUnits
@@ -337,8 +346,13 @@ export default function DataManagement() {
         ? parsed
         : null;
 
+      console.log("[Import] Unidades encontradas:", {
+        rawUnits: rawUnits?.length ?? 0,
+        firstUnit: rawUnits?.[0]
+      });
+
       if (!rawUnits || rawUnits.length === 0) {
-        toast.error("Nenhum dado de cronograma encontrado no arquivo.");
+        toast.error(`Nenhum dado de cronograma encontrado no arquivo. Estrutura disponível: ${Object.keys(parsed).join(", ")}`);
         return;
       }
 
@@ -346,6 +360,7 @@ export default function DataManagement() {
       try {
         normalizedUnits = normalizeCronogramaUnits(rawUnits);
       } catch (error) {
+        console.error("[Import] Erro ao normalizar:", error);
         toast.error(error instanceof Error ? error.message : "Erro ao normalizar dados.");
         return;
       }
@@ -353,6 +368,12 @@ export default function DataManagement() {
       const payload = JSON.stringify({
         academic_units: normalizedUnits.map(({ id, ...rest }) => rest),
       });
+      
+      console.log("[Import] Enviando para servidor:", {
+        unitsCount: normalizedUnits.length,
+        payloadLength: payload.length
+      });
+      
       const result = await importCronogramaMutation.mutateAsync({ content: payload });
       toast.success(result.message ?? "Cronograma importado com sucesso.");
 
@@ -363,8 +384,8 @@ export default function DataManagement() {
 
       clearCronogramaFile();
     } catch (error) {
-      console.error(error);
-      toast.error("Erro ao importar cronograma.");
+      console.error("[Import] Erro completo:", error);
+      toast.error(error instanceof Error ? `Erro ao importar cronograma: ${error.message}` : "Erro ao importar cronograma.");
     } finally {
       setIsImportingCronograma(false);
     }
@@ -445,8 +466,6 @@ export default function DataManagement() {
       return;
     }
 
-    // Agora importação de máquinas também é suportada via servidor
-
     setIsImportingMachines(true);
     try {
       const rawContent = await machinesFile.text();
@@ -455,17 +474,34 @@ export default function DataManagement() {
         parsed = JSON.parse(rawContent);
       } catch (error) {
         toast.error("Arquivo JSON invalido.");
+        console.error("Erro ao fazer parse do JSON:", error);
         return;
       }
 
+      console.log("[Import] Estrutura do arquivo parseado:", {
+        keys: Object.keys(parsed),
+        hasMachines: !!parsed?.machines,
+        isArray: Array.isArray(parsed),
+        machinesLength: parsed?.machines?.length ?? 0
+      });
+
       const rawMachines = Array.isArray(parsed?.machines)
         ? parsed.machines
+        : Array.isArray(parsed?.machinesList)
+        ? parsed.machinesList
+        : Array.isArray(parsed?.estacoes)
+        ? parsed.estacoes
         : Array.isArray(parsed)
         ? parsed
         : null;
 
+      console.log("[Import] Máquinas encontradas:", {
+        rawMachines: rawMachines?.length ?? 0,
+        firstMachine: rawMachines?.[0]
+      });
+
       if (!rawMachines || rawMachines.length === 0) {
-        toast.error("Nenhuma maquina encontrada no arquivo.");
+        toast.error(`Nenhuma maquina encontrada no arquivo. Estrutura disponível: ${Object.keys(parsed).join(", ")}`);
         return;
       }
 
@@ -473,23 +509,31 @@ export default function DataManagement() {
       try {
         normalizedMachines = normalizeMachines(rawMachines);
       } catch (error) {
+        console.error("[Import] Erro ao normalizar:", error);
         toast.error(error instanceof Error ? error.message : "Erro ao normalizar dados de implementacao.");
         return;
       }
 
-  const payload = JSON.stringify({ machines: normalizedMachines });
-  const result = await importLabsMutation.mutateAsync({ content: payload });
-  toast.success(result.message ?? "Implementacao importada com sucesso.");
+      const payload = JSON.stringify({ machines: normalizedMachines });
+      
+      console.log("[Import] Enviando para servidor:", {
+        machinesCount: normalizedMachines.length,
+        payloadLength: payload.length
+      });
+      
+      const result = await importLabsMutation.mutateAsync({ content: payload });
+      toast.success(result.message ?? "Implementacao importada com sucesso.");
 
       await Promise.all([
         utils.academicUnits.list.invalidate(),
         utils.laboratories.list.invalidate(),
+        utils.machines?.getByLaboratory?.invalidate(),
       ]).catch(console.error);
 
       clearMachinesFile();
     } catch (error) {
-      console.error(error);
-      toast.error("Erro ao importar lista de implementacao.");
+      console.error("[Import] Erro completo:", error);
+      toast.error(error instanceof Error ? `Erro ao importar lista de implementacao: ${error.message}` : "Erro ao importar lista de implementacao.");
     } finally {
       setIsImportingMachines(false);
     }

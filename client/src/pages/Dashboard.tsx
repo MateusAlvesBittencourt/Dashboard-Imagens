@@ -204,14 +204,24 @@ export default function Dashboard() {
     onSuccess: () => {
       refetchUnits();
       setEditingId(null);
+      toast.success('Unidade atualizada com sucesso');
     },
+    onError: (error: any) => {
+      console.error('[Update Unit] Erro:', error);
+      toast.error(error?.message || 'Erro ao atualizar unidade.');
+    }
   });
 
   const createUnitMutation = trpc.academicUnits.create.useMutation({
     onSuccess: () => {
       refetchUnits();
       setIsDialogOpen(false);
+      toast.success('Unidade criada com sucesso');
     },
+    onError: (error: any) => {
+      console.error('[Create Unit] Erro:', error);
+      toast.error(error?.message || 'Erro ao criar unidade. Verifique os dados e tente novamente.');
+    }
   });
 
   const updateLabMutation = trpc.laboratories.update.useMutation({
@@ -244,9 +254,9 @@ export default function Dashboard() {
       setIsDialogOpen(false);
       toast.success('Laboratório criado com sucesso');
     },
-    onError: (e: any) => {
-      console.error(e);
-      toast.error('Falha ao criar laboratório');
+    onError: (error: any) => {
+      console.error('[Create Lab] Erro:', error);
+      toast.error(error?.message || 'Erro ao criar laboratório. Verifique os dados e tente novamente.');
     }
   });
 

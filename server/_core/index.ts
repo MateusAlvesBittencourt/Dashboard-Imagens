@@ -37,9 +37,7 @@ async function startServer() {
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true, mode: process.env.NODE_ENV || "development" });
   });
-  // OAuth callback under /api/oauth/callback
-  registerOAuthRoutes(app);
-  // tRPC API
+  // tRPC API - deve vir ANTES do setup do Vite para não ser interceptado
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -47,6 +45,9 @@ async function startServer() {
       createContext,
     })
   );
+  
+  // OAuth callback under /api/oauth/callback
+  registerOAuthRoutes(app);
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

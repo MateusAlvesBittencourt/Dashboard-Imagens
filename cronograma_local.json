@@ -1,0 +1,79 @@
+{
+  "academicUnits": [
+    {
+      "id": 1,
+      "name": "Escola Politécnica",
+      "emailCronograma": "2025-07-25T00:00:00.000Z",
+      "cienciaUnidade": "2025-08-04T00:00:00.000Z",
+      "listaSoftwares": "2025-10-08T00:00:00.000Z",
+      "criacao": "2025-10-09T00:00:00.000Z",
+      "testeDeploy": "2025-10-14T00:00:00.000Z",
+      "homologacao": "2025-10-30T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "name": "Escola de Negócios",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": null,
+      "cienciaUnidade": "2025-09-02 00:00:00",
+      "listaSoftwares": "2025-09-02 00:00:00",
+      "criacao": "2025-09-03 00:00:00",
+      "testeDeploy": "2025-09-01 00:00:00",
+      "homologacao": "2025-10-20 00:00:00",
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "id": 3,
+      "name": "ECD Famecos",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": "2025-09-02 00:00:00",
+      "listaSoftwares": "2025-09-25 00:00:00",
+      "criacao": "2025-10-01 00:00:00",
+      "testeDeploy": "2025-10-07 00:00:00",
+      "homologacao": "2025-10-23 00:00:00",
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "id": 4,
+      "name": "LIVING",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": null,
+      "listaSoftwares": "2025-10-23 00:00:00",
+      "criacao": null,
+      "testeDeploy": null,
+      "homologacao": null,
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "id": 5,
+      "name": "Escola de Humanidades",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": null,
+      "listaSoftwares": null,
+      "criacao": null,
+      "testeDeploy": null,
+      "homologacao": null,
+      "aprovacao": null,
+      "implantacao": null
+    },
+    {
+      "id": 6,
+      "name": "Escola de Ciências e Saúde da Vida",
+      "emailCronograma": "2025-07-25 00:00:00",
+      "emailReforco": "2025-09-02 00:00:00",
+      "cienciaUnidade": "2025-09-11 00:00:00",
+      "listaSoftwares": "2025-09-11 00:00:00",
+      "criacao": "2025-09-12 00:00:00",
+      "testeDeploy": "2025-09-16 00:00:00",
+      "homologacao": "2025-10-21 00:00:00",
+      "aprovacao": null,
+      "implantacao": null
+    }
+  ]
+}
