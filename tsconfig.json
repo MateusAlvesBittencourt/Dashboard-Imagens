@@ -19,7 +19,6 @@
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]
     },
-    "resolveJsonModule": true,
-    "ignoreDeprecations": "6.0"
+    "resolveJsonModule": true
   }
 }

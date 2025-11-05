@@ -113,8 +113,17 @@ export async function updateAcademicUnit(id: number, updateData: Partial<Academi
 // Laboratories
 export async function getLaboratories(): Promise<Omit<Laboratory, 'softwares' | 'machines'>[]> {
     const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
-    // Retorna os laboratórios sem os detalhes de software e máquinas para a lista principal
-    return (data.laboratories || []).map(({ softwares, machines, ...lab }) => lab);
+    // Retorna os laboratórios com ID e sem os arrays de software e máquinas para a lista principal
+    return (data.laboratories || []).map(({ softwares, machines, ...lab }) => ({
+        id: lab.id,
+        predio: lab.predio,
+        bloco: lab.bloco,
+        sala: lab.sala,
+        estacao: lab.estacao,
+        nomeContato: lab.nomeContato,
+        emailContato: lab.emailContato,
+        ramalContato: lab.ramalContato,
+    }));
 }
 
 export async function getLaboratoryById(id: number): Promise<Laboratory | null> {
