@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { APP_LOGO } from "@/const";
 import { PageHero } from "@/components/PageHero";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function Dashboard() {
     } catch {}
   }, []);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [isEditUnitOpen, setIsEditUnitOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [softwareDialogLabId, setSoftwareDialogLabId] = useState<number | null>(null);
   const [softwareEditMode, setSoftwareEditMode] = useState(false);
@@ -193,13 +195,13 @@ export default function Dashboard() {
 
   const heroMeta = (
     <>
-      <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1 shadow-sm">
-        {labsLoading || unitsLoading ? "Sincronizando dados..." : "Dados atualizados"}
+      <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs shadow-sm">
+        {labsLoading || unitsLoading ? "Sincronizando..." : "Atualizado"}
       </span>
       {user && (
         <>
-          <span className="hidden sm:inline text-muted-foreground/70">-</span>
-          <span>
+          <span className="hidden sm:inline text-muted-foreground/70">&middot;</span>
+          <span className="text-xs">
             Conectado como <span className="font-semibold text-foreground">{user.name}</span>
           </span>
         </>
@@ -212,7 +214,7 @@ export default function Dashboard() {
       <PageHero
         badge="Dashboard"
         title="Dashboard Imagens 2026"
-        description="Gerencie cronogramas, laboratorios, softwares e estacoes com uma visao integrada e moderna."
+        description="Gerencie cronogramas, laboratórios, softwares e estações com uma visão integrada e moderna."
         leading={
           <div className="flex items-center gap-3">
             <img
@@ -220,15 +222,124 @@ export default function Dashboard() {
               alt="Logotipo da empresa"
               className="h-10 w-auto rounded-lg bg-background/80 p-1 shadow-sm ring-1 ring-border/60"
             />
-            <BackButton className="h-9 rounded-full border-border/70 px-4 text-sm font-medium tracking-tight hover:border-primary/50 hover:bg-primary/10" />
+            <BackButton />
           </div>
         }
         actions={<ThemeToggle />}
         meta={heroMeta}
       />
 
+      {/* Dialog de Edição de Unidade */}
+      <Dialog open={isEditUnitOpen} onOpenChange={(o)=>{ setIsEditUnitOpen(o); if(!o) setEditingId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Unidade</DialogTitle>
+            <DialogDescription>Atualize as datas e confirme para salvar.</DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const unit = (units as any[] | undefined)?.find(u => u.id === editingId);
+            if (!unit) return <div className="text-sm text-muted-foreground">Selecione uma unidade para editar.</div>;
+            return (
+              <form
+                className="space-y-3"
+                onSubmit={(e)=>{
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget as HTMLFormElement);
+                  const data: any = {};
+                  const map = ['emailCronograma','emailReforco','cienciaUnidade','listaSoftwares','criacao','testeDeploy','homologacao','aprovacao','implantacao'];
+                  for (const key of map) {
+                    const v = fd.get(key) as string | null;
+                    data[key] = v ? new Date(v) : undefined;
+                  }
+                  updateUnitMutation.mutate({ id: unit.id, data });
+                  setIsEditUnitOpen(false);
+                  setEditingId(null);
+                }}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Email Cronograma</label>
+                    <input type="date" name="emailCronograma" defaultValue={formatInputDate(unit.emailCronograma as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Reforço</label>
+                    <input type="date" name="emailReforco" defaultValue={formatInputDate(unit.emailReforco as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Ciência</label>
+                    <input type="date" name="cienciaUnidade" defaultValue={formatInputDate(unit.cienciaUnidade as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Lista Softwares</label>
+                    <input type="date" name="listaSoftwares" defaultValue={formatInputDate(unit.listaSoftwares as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Criação</label>
+                    <input type="date" name="criacao" defaultValue={formatInputDate(unit.criacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Teste Deploy</label>
+                    <input type="date" name="testeDeploy" defaultValue={formatInputDate(unit.testeDeploy as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Homologação</label>
+                    <input type="date" name="homologacao" defaultValue={formatInputDate(unit.homologacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Aprovação</label>
+                    <input type="date" name="aprovacao" defaultValue={formatInputDate(unit.aprovacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Implantação</label>
+                    <input type="date" name="implantacao" defaultValue={formatInputDate(unit.implantacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={()=>{ setIsEditUnitOpen(false); setEditingId(null); }}>Cancelar</Button>
+                  <Button type="submit" size="sm">Salvar</Button>
+                </div>
+              </form>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-12 sm:px-6 lg:px-8">
-        {/* Seletor de abas removido a pedido; a aba é definida via query param ?tab=units|labs */}
+        {/* Seletor de abas */}
+        <div className="flex items-center justify-center border-b border-border/80">
+          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab("units")}
+              className={`whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium ${
+                activeTab === "units"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
+              }`}
+            >
+              Cronograma
+            </button>
+            <button
+              onClick={() => setActiveTab("labs")}
+              className={`whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium ${
+                activeTab === "labs"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
+              }`}
+            >
+              Laboratórios
+            </button>
+            <button
+              onClick={() => setActiveTab("implementation")}
+              className={`whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium ${
+                activeTab === "implementation"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
+              }`}
+            >
+              Implementação
+            </button>
+          </nav>
+        </div>
 
         {/* Units Tab */}
         {activeTab === "units" && (
@@ -285,125 +396,43 @@ export default function Dashboard() {
                 <Loader2 className="animate-spin text-muted-foreground/70" size={32} />
               </div>
             ) : units && units.length > 0 ? (
-              <div className="grid gap-4">
-                {units.map((unit: any) => (
-                  <Card key={unit.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">{unit.name}</CardTitle>
-                          <CardDescription>ID: {unit.id}</CardDescription>
-                        </div>
-                        {(user || isLocalMode()) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingId(unit.id)}
-                            className="gap-1"
-                          >
-                            <Edit2 size={16} />
-                            Editar
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {editingId === unit.id ? (
-                        <form
-                          className="space-y-4"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            const fd = new FormData(e.currentTarget as HTMLFormElement);
-                            const data: any = {};
-                            const map = [
-                              'emailCronograma','emailReforco','cienciaUnidade','listaSoftwares','criacao','testeDeploy','homologacao','aprovacao','implantacao'
-                            ];
-                            for (const key of map) {
-                              const v = fd.get(key) as string | null;
-                              if (v) data[key] = new Date(v);
-                              else data[key] = undefined;
-                            }
-                            updateUnitMutation.mutate({ id: unit.id, data });
-                          }}
-                        >
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            <div>
-                              <label className="text-xs text-muted-foreground">Email Cronograma</label>
-                              <input name="emailCronograma" type="date" defaultValue={formatInputDate(unit.emailCronograma as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Reforço</label>
-                              <input name="emailReforco" type="date" defaultValue={formatInputDate(unit.emailReforco as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Ciência</label>
-                              <input name="cienciaUnidade" type="date" defaultValue={formatInputDate(unit.cienciaUnidade as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Lista Softwares</label>
-                              <input name="listaSoftwares" type="date" defaultValue={formatInputDate(unit.listaSoftwares as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Criação</label>
-                              <input name="criacao" type="date" defaultValue={formatInputDate(unit.criacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Teste Deploy</label>
-                              <input name="testeDeploy" type="date" defaultValue={formatInputDate(unit.testeDeploy as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Homologação</label>
-                              <input name="homologacao" type="date" defaultValue={formatInputDate(unit.homologacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Aprovação</label>
-                              <input name="aprovacao" type="date" defaultValue={formatInputDate(unit.aprovacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">Implantação</label>
-                              <input name="implantacao" type="date" defaultValue={formatInputDate(unit.implantacao as any)} className="mt-1 w-full border rounded px-2 py-1 text-sm" />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 mt-4">
-                            <Button type="submit" size="sm">Salvar</Button>
-                            <Button type="button" variant="outline" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground font-medium">Email Cronograma</p>
-                            <p className="text-foreground">{formatDate(unit.emailCronograma)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Ciência Unidade</p>
-                            <p className="text-foreground">{formatDate(unit.cienciaUnidade)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Criação</p>
-                            <p className="text-foreground">{formatDate(unit.criacao)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Teste Deploy</p>
-                            <p className="text-foreground">{formatDate(unit.testeDeploy)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Homologação</p>
-                            <p className="text-foreground">{formatDate(unit.homologacao)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Aprovação</p>
-                            <p className="text-foreground">{formatDate(unit.aprovacao as any)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground font-medium">Implantação</p>
-                            <p className="text-foreground">{formatDate(unit.implantacao as any)}</p>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Unidade</TableHead>
+                      <TableHead className="min-w-[120px]">Email Cronograma</TableHead>
+                      <TableHead className="min-w-[120px]">Ciência</TableHead>
+                      <TableHead className="min-w-[120px]">Criação</TableHead>
+                      <TableHead className="min-w-[120px]">Teste Deploy</TableHead>
+                      <TableHead className="min-w-[120px]">Homologação</TableHead>
+                      <TableHead className="min-w-[120px]">Aprovação</TableHead>
+                      <TableHead className="min-w-[120px]">Implantação</TableHead>
+                      <TableHead className="w-[120px] text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(units as any[]).map((unit) => (
+                      <TableRow key={unit.id}>
+                        <TableCell className="font-medium">{unit.name}</TableCell>
+                        <TableCell>{formatDate(unit.emailCronograma)}</TableCell>
+                        <TableCell>{formatDate(unit.cienciaUnidade)}</TableCell>
+                        <TableCell>{formatDate(unit.criacao)}</TableCell>
+                        <TableCell>{formatDate(unit.testeDeploy)}</TableCell>
+                        <TableCell>{formatDate(unit.homologacao)}</TableCell>
+                        <TableCell>{formatDate(unit.aprovacao)}</TableCell>
+                        <TableCell>{formatDate(unit.implantacao)}</TableCell>
+                        <TableCell className="text-right">
+                          {(user || isLocalMode()) && (
+                            <Button size="sm" variant="ghost" onClick={() => { setEditingId(unit.id); setIsEditUnitOpen(true); }} className="gap-1">
+                              <Edit2 size={16} /> Editar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <Card>
