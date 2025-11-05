@@ -7,7 +7,6 @@ import { Upload, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { isLocalMode } from "@/lib/env";
-import { localdb } from "@/lib/localdb";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PageHero } from "@/components/PageHero";
 import { APP_LOGO } from "@/const";
@@ -352,10 +351,7 @@ export default function DataManagement() {
       }
 
       if (useLocal) {
-        const current = JSON.parse(localdb.export());
-        current.academicUnits = normalizedUnits;
-        localdb.import(JSON.stringify(current));
-        toast.success("Cronograma importado no modo local.");
+        toast.error("Importação local não é mais suportada. Use a API do servidor.");
       } else {
         const payload = JSON.stringify({
           academic_units: normalizedUnits.map(({ id, ...rest }) => rest),
@@ -417,13 +413,7 @@ export default function DataManagement() {
       }
 
         if (useLocal) {
-          const current = JSON.parse(localdb.export());
-          const labsWithoutSoftwares = normalizedLabs.map(({ softwares, ...lab }) => lab);
-          current.laboratories = labsWithoutSoftwares;
-          const softwareInstallations = normalizeSoftwareInstallationsFromLabs(normalizedLabs);
-          current.softwareInstallations = softwareInstallations;
-          localdb.import(JSON.stringify(current));
-          toast.success("Laboratorios importados no modo local.");
+          toast.error("Importação local não é mais suportada. Use a API do servidor.");
         } else {
           const labsForImport = normalizedLabs.map(({ id, softwares, ...rest }) => {
             const normalizedSoftwares = Array.isArray(softwares) ? softwares : [];
@@ -498,10 +488,9 @@ export default function DataManagement() {
         return;
       }
 
-      const current = JSON.parse(localdb.export());
-      current.machines = normalizedMachines;
-      localdb.import(JSON.stringify(current));
-      toast.success("Lista de implementacao importada no modo local.");
+      toast.error("Importação local não é mais suportada.");
+      setIsImportingMachines(false);
+      return;
 
       await Promise.all([
         utils.academicUnits.list.invalidate(),
@@ -520,10 +509,7 @@ export default function DataManagement() {
   const handleExportCronograma = async () => {
     try {
       if (useLocal) {
-        const units = localdb.listUnits();
-        const payload = { academicUnits: units };
-        downloadText(JSON.stringify(payload, null, 2), "cronograma_local.json");
-        toast.success("Cronograma exportado em JSON.");
+        toast.error("Exportação local não é mais suportada. Use a API do servidor.");
         return;
       }
 
@@ -543,24 +529,7 @@ export default function DataManagement() {
   const handleExportLaboratories = async () => {
     try {
       if (useLocal) {
-        const labs = localdb.listLabs();
-        const payload = {
-          laboratories: labs.map((lab) => {
-            const softwares = localdb
-              .listSoftwareByLab(lab.id)
-              .map((software) => ({
-                softwareName: software.softwareName,
-                version: software.version ?? null,
-                license: software.license ?? "Gratuito",
-              }));
-            return {
-              ...lab,
-              softwares,
-            };
-          }),
-        };
-        downloadText(JSON.stringify(payload, null, 2), "laboratorios_local.json");
-        toast.success("Laboratorios exportados em JSON.");
+        toast.error("Exportação local não é mais suportada. Use a API do servidor.");
         return;
       }
 
@@ -580,10 +549,7 @@ export default function DataManagement() {
   const handleExportMachines = async () => {
     try {
       if (useLocal) {
-        const snapshot = JSON.parse(localdb.export());
-        const machines = Array.isArray(snapshot?.machines) ? snapshot.machines : [];
-        downloadText(JSON.stringify({ machines }, null, 2), "implementacao_local.json");
-        toast.success("Lista de implementacao exportada em JSON.");
+        toast.error("Exportação local não é mais suportada. Use a API do servidor.");
         return;
       }
 
@@ -620,28 +586,10 @@ export default function DataManagement() {
 
   const handleClearLabsLocal = async () => {
     if (!useLocal) {
-      toast.info("Limpeza em massa disponivel apenas no modo local.");
+      toast.info("Limpeza em massa disponível apenas no modo local.");
       return;
     }
-
-    const confirmed = window.confirm(
-      "Tem certeza que deseja apagar TODOS os laboratorios e softwares? Essa acao nao pode ser desfeita."
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      localdb.clearLabs();
-      await Promise.all([
-        utils.academicUnits.list.invalidate(),
-        utils.laboratories.list.invalidate(),
-      ]).catch(console.error);
-      toast.success("Laboratorios e softwares removidos do armazenamento local.");
-    } catch (error) {
-      console.error(error);
-      toast.error("Falha ao limpar laboratorios.");
-    }
+    toast.error("Limpeza local não é mais suportada.");
   };
 
   if (!user) {

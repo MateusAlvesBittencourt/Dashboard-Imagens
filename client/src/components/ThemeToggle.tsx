@@ -35,7 +35,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       <motion.span
         layout
         transition={spring}
-        className="absolute inset-1 rounded-full bg-gradient-to-r from-blue-500/15 via-violet-500/20 to-blue-500/15 opacity-0 blur-0 transition-opacity group-hover:opacity-100"
+        className="absolute inset-1 rounded-full bg-linear-to-r from-blue-500/15 via-violet-500/20 to-blue-500/15 opacity-0 blur-0 transition-opacity group-hover:opacity-100"
         aria-hidden
       />
 
@@ -43,7 +43,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         layout
         transition={spring}
         className={cn(
-          "relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 text-slate-900 shadow-sm transition group-hover:shadow",
+          "relative flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-slate-100 to-slate-200 text-slate-900 shadow-sm transition group-hover:shadow",
           isDark && "from-slate-900 via-slate-800 to-slate-900 text-blue-100 shadow-lg"
         )}
       >
