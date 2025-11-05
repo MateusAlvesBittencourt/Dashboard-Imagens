@@ -28,6 +28,7 @@ export const importRouter = router({
         let importedUnits = 0;
         let importedLabs = 0;
         let importedSoftware = 0;
+        let importedMachines = 0;
 
         const labsInlineSoftwares: Array<{
           key: string;
@@ -91,9 +92,9 @@ export const importRouter = router({
         if (data.laboratories && Array.isArray(data.laboratories)) {
           for (const lab of data.laboratories) {
             try {
-              const providedId = typeof lab.id === "number" ? lab.id : undefined;
+              // createLaboratory agora aceita ID opcional; se fornecido e existir, atualiza
               await db.createLaboratory({
-                id: providedId,
+                id: typeof lab.id === "number" ? lab.id : undefined,
                 predio: lab.predio,
                 bloco: lab.bloco,
                 sala: lab.sala,
@@ -143,11 +144,10 @@ export const importRouter = router({
                 continue;
               }
               try {
-                await db.createSoftwareInstallation({
-                  laboratoryId: matchingLab.id,
+                await db.createSoftware(matchingLab.id, {
                   softwareName: String(softwareName),
                   version: normalizeNullableString(software?.version ?? software?.versao) ?? undefined,
-                  license: normalizeLicense(software?.license ?? software?.licenca),
+                  license: normalizeLicense(software?.license ?? software?.licenca) as any,
                 });
                 importedSoftware++;
               } catch (error) {
@@ -182,11 +182,10 @@ export const importRouter = router({
                     continue;
                   }
                   try {
-                    await db.createSoftwareInstallation({
-                      laboratoryId: matchingLab.id,
+                    await db.createSoftware(matchingLab.id, {
                       softwareName: String(softwareName),
                       version: normalizeNullableString(software?.version ?? software?.versao) ?? undefined,
-                      license: normalizeLicense(software?.license ?? software?.licenca),
+                      license: normalizeLicense(software?.license ?? software?.licenca) as any,
                     });
                     importedSoftware++;
                   } catch (error) {
@@ -200,13 +199,49 @@ export const importRouter = router({
           }
         }
 
+        // Importar máquinas (implementação)
+        if (data.machines && Array.isArray(data.machines)) {
+          for (const machine of data.machines) {
+            try {
+              const rawLabId = machine?.laboratoryId ?? machine?.laboratory_id ?? machine?.labId ?? machine?.lab_id;
+              const laboratoryId = Number(rawLabId);
+              if (!laboratoryId || Number.isNaN(laboratoryId)) {
+                console.warn(`[Import] Máquina sem laboratoryId válido ignorada.`);
+                continue;
+              }
+              const lab = await db.getLaboratoryById(laboratoryId as any);
+              if (!lab) {
+                console.warn(`[Import] Laboratório ${laboratoryId} não encontrado para vincular máquina.`);
+                continue;
+              }
+              const hostname = String(machine?.hostname ?? machine?.name ?? "").trim();
+              const patrimonio = machine?.patrimonio ?? machine?.assetTag ?? null;
+              let formatted = Boolean(machine?.formatted);
+              if (typeof machine?.formatted === "string") {
+                formatted = ["true", "1", "yes", "sim"].includes(machine.formatted.toLowerCase());
+              }
+              const formattedAt = machine?.formattedAt ?? machine?.formatted_at ?? null;
+              await db.createMachine(laboratoryId, {
+                hostname,
+                patrimonio,
+                formatted,
+                formattedAt,
+              } as any);
+              importedMachines++;
+            } catch (error) {
+              console.error(`Erro ao importar máquina:`, error);
+            }
+          }
+        }
+
         return {
           success: true,
-          message: `Importação concluída: ${importedUnits} unidades, ${importedLabs} laboratórios, ${importedSoftware} softwares`,
+          message: `Importação concluída: ${importedUnits} unidades, ${importedLabs} laboratórios, ${importedSoftware} softwares, ${importedMachines} máquinas`,
           stats: {
             importedUnits,
             importedLabs,
             importedSoftware,
+            importedMachines,
           },
         };
       } catch (error) {

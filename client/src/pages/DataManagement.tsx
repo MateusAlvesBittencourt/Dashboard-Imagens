@@ -350,15 +350,11 @@ export default function DataManagement() {
         return;
       }
 
-      if (useLocal) {
-        toast.error("Importação local não é mais suportada. Use a API do servidor.");
-      } else {
-        const payload = JSON.stringify({
-          academic_units: normalizedUnits.map(({ id, ...rest }) => rest),
-        });
-        const result = await importCronogramaMutation.mutateAsync({ content: payload });
-        toast.success(result.message ?? "Cronograma importado com sucesso.");
-      }
+      const payload = JSON.stringify({
+        academic_units: normalizedUnits.map(({ id, ...rest }) => rest),
+      });
+      const result = await importCronogramaMutation.mutateAsync({ content: payload });
+      toast.success(result.message ?? "Cronograma importado com sucesso.");
 
       await Promise.all([
         utils.academicUnits.list.invalidate(),
@@ -412,26 +408,22 @@ export default function DataManagement() {
         return;
       }
 
-        if (useLocal) {
-          toast.error("Importação local não é mais suportada. Use a API do servidor.");
-        } else {
-          const labsForImport = normalizedLabs.map(({ id, softwares, ...rest }) => {
-            const normalizedSoftwares = Array.isArray(softwares) ? softwares : [];
-            return {
-              ...rest,
-              softwares: normalizedSoftwares.map((software) => ({
-                softwareName: software.softwareName,
-                version: software.version ?? null,
-                license: software.license ?? "Gratuito",
-              })),
-            };
-          });
-          const payload = JSON.stringify({
-            laboratories: labsForImport,
-          });
-          const result = await importLabsMutation.mutateAsync({ content: payload });
-          toast.success(result.message ?? "Laboratorios importados com sucesso.");
-        }
+        const labsForImport = normalizedLabs.map(({ id, softwares, ...rest }) => {
+          const normalizedSoftwares = Array.isArray(softwares) ? softwares : [];
+          return {
+            ...rest,
+            softwares: normalizedSoftwares.map((software) => ({
+              softwareName: software.softwareName,
+              version: software.version ?? null,
+              license: software.license ?? "Gratuito",
+            })),
+          };
+        });
+        const payload = JSON.stringify({
+          laboratories: labsForImport,
+        });
+        const result = await importLabsMutation.mutateAsync({ content: payload });
+        toast.success(result.message ?? "Laboratorios importados com sucesso.");
 
       await Promise.all([
         utils.academicUnits.list.invalidate(),
@@ -453,10 +445,7 @@ export default function DataManagement() {
       return;
     }
 
-    if (!useLocal) {
-      toast.info("Importacao de implementacao disponivel apenas no modo local.");
-      return;
-    }
+    // Agora importação de máquinas também é suportada via servidor
 
     setIsImportingMachines(true);
     try {
@@ -488,9 +477,9 @@ export default function DataManagement() {
         return;
       }
 
-      toast.error("Importação local não é mais suportada.");
-      setIsImportingMachines(false);
-      return;
+  const payload = JSON.stringify({ machines: normalizedMachines });
+  const result = await importLabsMutation.mutateAsync({ content: payload });
+  toast.success(result.message ?? "Implementacao importada com sucesso.");
 
       await Promise.all([
         utils.academicUnits.list.invalidate(),

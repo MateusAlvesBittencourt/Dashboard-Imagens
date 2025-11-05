@@ -122,14 +122,64 @@ export async function getLaboratoryById(id: number): Promise<Laboratory | null> 
     return (data.laboratories || []).find(l => l.id === id) || null;
 }
 
-export async function createLaboratory(labData: Omit<Laboratory, 'id' | 'softwares' | 'machines'>): Promise<Laboratory> {
-    const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
-    const labs = data.laboratories || [];
-    const newId = labs.length > 0 ? Math.max(...labs.map(l => l.id)) + 1 : 1;
-    const newLab: Laboratory = { id: newId, ...labData, softwares: [], machines: [] };
+export async function createLaboratory(labData: Partial<Pick<Laboratory, 'id'>> & Omit<Laboratory, 'softwares' | 'machines'>): Promise<Laboratory> {
+  const data = await readData<{ laboratories: Laboratory[] }>(labsDataPath);
+  const labs = data.laboratories || [];
+
+  // Se ID foi fornecido e já existe, atualiza o laboratório existente
+  if (typeof labData.id === 'number') {
+    const existingIndex = labs.findIndex(l => l.id === labData.id);
+    if (existingIndex !== -1) {
+      const existing = labs[existingIndex];
+      const updated: Laboratory = {
+        ...existing,
+        predio: labData.predio,
+        bloco: labData.bloco,
+        sala: labData.sala,
+        estacao: labData.estacao,
+        nomeContato: labData.nomeContato,
+        emailContato: labData.emailContato,
+        ramalContato: labData.ramalContato,
+      } as Laboratory;
+      labs[existingIndex] = updated;
+      await writeData(labsDataPath, { ...data, laboratories: labs });
+      return updated;
+    }
+    // Se não existe, cria com o ID fornecido
+    const newLab: Laboratory = {
+      id: labData.id,
+      predio: labData.predio!,
+      bloco: labData.bloco,
+      sala: labData.sala!,
+      estacao: labData.estacao,
+      nomeContato: labData.nomeContato,
+      emailContato: labData.emailContato,
+      ramalContato: labData.ramalContato,
+      softwares: [],
+      machines: [],
+    };
     labs.push(newLab);
     await writeData(labsDataPath, { ...data, laboratories: labs });
     return newLab;
+  }
+
+  // Se não foi fornecido ID, gera um novo
+  const newId = labs.length > 0 ? Math.max(...labs.map(l => l.id)) + 1 : 1;
+  const newLab: Laboratory = {
+    id: newId,
+    predio: labData.predio!,
+    bloco: labData.bloco,
+    sala: labData.sala!,
+    estacao: labData.estacao,
+    nomeContato: labData.nomeContato,
+    emailContato: labData.emailContato,
+    ramalContato: labData.ramalContato,
+    softwares: [],
+    machines: [],
+  };
+  labs.push(newLab);
+  await writeData(labsDataPath, { ...data, laboratories: labs });
+  return newLab;
 }
 
 export async function updateLaboratory(id: number, updateData: Partial<Omit<Laboratory, 'id' | 'softwares' | 'machines'>>): Promise<Laboratory | null> {
