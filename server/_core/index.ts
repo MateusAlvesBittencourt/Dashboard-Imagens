@@ -8,6 +8,19 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
+// Global error handlers
+process.on("uncaughtException", (err: any) => {
+  console.error(`[Uncaught Exception] ${err?.message || String(err)}`);
+  console.error(err?.stack);
+  // Don't exit - let the server keep running
+});
+
+process.on("unhandledRejection", (reason: any) => {
+  console.error(`[Unhandled Rejection] ${reason?.message || String(reason)}`);
+  if (reason?.stack) console.error(reason.stack);
+  // Don't exit - let the server keep running
+});
+
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
@@ -27,7 +40,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-async function startServer() {
+function startServer() {
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
@@ -48,23 +61,65 @@ async function startServer() {
   
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
+    console.log("[Init] Setting up Vite middleware...");
+    return setupVite(app, server).then(() => {
+      console.log("[Init] Vite middleware setup complete");
+      return listenServer(server);
+    }).catch(err => {
+      console.error(`[Startup Error] ${err?.message || String(err)}`);
+      throw err;
+    });
   } else {
+    console.log("[Init] Using static file serving");
     serveStatic(app);
+    return listenServer(server);
   }
+}
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+function listenServer(server: any): Promise<never> {
+  return new Promise((resolve, reject) => {
+    const preferredPort = parseInt(process.env.PORT || "3000");
+    console.log(`[Init] Checking port availability starting from ${preferredPort}...`);
+    
+    findAvailablePort(preferredPort).then(port => {
+      console.log(`[Init] Port ${port} is available`);
 
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
+      if (port !== preferredPort) {
+        console.log(`[Init] Port ${preferredPort} is busy, using port ${port} instead`);
+      }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+      server.on("error", (err: any) => {
+        console.error(`[Server Error] ${err.message}`);
+        console.error(err?.stack);
+        reject(err);
+      });
+
+      server.on("close", () => {
+        console.log("[Server] Closed");
+      });
+
+      server.on("connection", (conn: any) => {
+        console.log(`[Server] New connection from ${conn.remoteAddress}:${conn.remotePort}`);
+      });
+
+      console.log(`[Init] Calling server.listen(${port}, 127.0.0.1)...`);
+      server.listen(port, "127.0.0.1", () => {
+        console.log(`Server running on http://localhost:${port}/`);
+        // NEVER resolve - keep the promise pending so the process doesn't exit
+      });
+    }).catch(err => {
+      console.error(`[Port Error] ${err?.message || String(err)}`);
+      console.error(err?.stack);
+      reject(err);
+    });
   });
 }
 
-startServer().catch(console.error);
+startServer();
+// Keep the process alive - this prevents Node from exiting
+setInterval(() => {
+  // Empty interval just to keep the process alive
+}, 1000 * 60 * 60);

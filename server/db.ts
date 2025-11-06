@@ -46,15 +46,36 @@ interface Laboratory {
   machines: Machine[];
 }
 
+// --- Configuração de caminho de dados ---
+// Diretório padrão para armazenar dados: C:\Program Files\dashboard\banco
+const getDataDirectory = (): string => {
+  const dataDir = 'C:\\Program Files\\dashboard\\banco';
+  return dataDir;
+};
 
 // Caminhos para os arquivos JSON
-const principalDataPath = path.join(process.cwd(), 'data_principal.json');
-const labsDataPath = path.join(process.cwd(), 'data_labs.json');
+const principalDataPath = path.join(getDataDirectory(), 'data_principal.json');
+const labsDataPath = path.join(getDataDirectory(), 'data_labs.json');
 
 // --- Funções auxiliares para ler e escrever JSON ---
 
+// Garante que o diretório de dados existe, criando-o se necessário
+async function ensureDataDirectory(): Promise<void> {
+  try {
+    const dataDir = getDataDirectory();
+    await fs.mkdir(dataDir, { recursive: true });
+    console.log(`[DB] Diretório de dados confirmado/criado: ${dataDir}`);
+  } catch (error) {
+    console.error(`Erro ao criar diretório de dados:`, error);
+    throw error;
+  }
+}
+
 async function readData<T>(filePath: string): Promise<T> {
   try {
+    // Garante que o diretório existe antes de tentar ler
+    await ensureDataDirectory();
+    
     const fileContent = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(fileContent);
   } catch (error) {
@@ -68,13 +89,37 @@ async function readData<T>(filePath: string): Promise<T> {
 
 async function writeData(filePath: string, data: any): Promise<void> {
   try {
+    // Garante que o diretório existe antes de tentar escrever
+    await ensureDataDirectory();
+    
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    console.log(`[DB] Dados salvos em: ${filePath}`);
   } catch (error) {
     console.error(`Erro ao escrever no arquivo ${filePath}:`, error);
+    throw error;
   }
 }
 
 // --- Implementação das funções de acesso a dados ---
+
+// Função para verificar status e localização dos dados
+export async function getDataStatus(): Promise<{ path: string; exists: boolean; message: string }> {
+  try {
+    const dataDir = getDataDirectory();
+    await ensureDataDirectory();
+    return {
+      path: dataDir,
+      exists: true,
+      message: `Diretório de dados configurado em: ${dataDir}`
+    };
+  } catch (error: any) {
+    return {
+      path: getDataDirectory(),
+      exists: false,
+      message: `Erro ao acessar diretório: ${error?.message || 'Desconhecido'}`
+    };
+  }
+}
 
 // Academic Units
 export async function getAcademicUnits(): Promise<AcademicUnit[]> {
