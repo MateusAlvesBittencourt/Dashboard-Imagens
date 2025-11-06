@@ -17,6 +17,7 @@ type UnitSummary = {
 export default function Settings() {
   const { user } = useAuth();
   const { data: units, isLoading: unitsLoading } = trpc.academicUnits.list.useQuery();
+  const { data: dataStatus } = trpc.system.dataStatus.useQuery();
   const unitList = (units ?? []) as UnitSummary[];
   const hasUnits = unitList.length > 0;
 
@@ -82,6 +83,34 @@ export default function Settings() {
         meta={heroMeta}
       />
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+        {/* Status de dados */}
+        <Card className="mb-6 border-border/60 bg-card/60 shadow-sm backdrop-blur">
+          <CardHeader>
+            <CardTitle>Status de Dados</CardTitle>
+            <CardDescription>Informacoes sobre o armazenamento de dados do sistema</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {dataStatus ? (
+              <div className="flex flex-col gap-3">
+                <div className="rounded-lg border border-border/60 bg-background/50 p-4">
+                  <p className="text-sm text-muted-foreground">Caminho de armazenamento:</p>
+                  <p className="mt-1 break-all font-mono text-sm font-semibold text-foreground">{dataStatus.path}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`h-3 w-3 rounded-full ${dataStatus.exists ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <p className="text-sm text-foreground">{dataStatus.message}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <p className="text-sm text-muted-foreground">Verificando status...</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Utilitarios e unidades */}
         <Card className="border border-border/50 bg-background/80 shadow-sm">
           <CardHeader>
             <CardTitle>Utilitarios</CardTitle>
