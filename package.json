@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:win": "vite",
     "dev:ps": "vite",
-    "dev:app": "tsx server_start.ts",
+    "dev:app": "NODE_ENV=development VITE_LOCAL_MODE=true PORT=3000 tsx server/index.ts",
     "build": "vite build",
     "start": "vite preview",
     "check": "tsc --noEmit",

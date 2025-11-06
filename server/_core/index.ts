@@ -65,60 +65,59 @@ function startServer() {
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     console.log("[Init] Setting up Vite middleware...");
-    return setupVite(app, server).then(() => {
+    setupVite(app, server).then(() => {
       console.log("[Init] Vite middleware setup complete");
-      return listenServer(server);
+      listenServer(server);
     }).catch(err => {
       console.error(`[Startup Error] ${err?.message || String(err)}`);
-      throw err;
     });
   } else {
     console.log("[Init] Using static file serving");
     serveStatic(app);
-    return listenServer(server);
+    listenServer(server);
   }
 }
 
-function listenServer(server: any): Promise<never> {
-  return new Promise((resolve, reject) => {
-    const preferredPort = parseInt(process.env.PORT || "3000");
-    console.log(`[Init] Checking port availability starting from ${preferredPort}...`);
-    
-    findAvailablePort(preferredPort).then(port => {
-      console.log(`[Init] Port ${port} is available`);
+function listenServer(server: any) {
+  const preferredPort = parseInt(process.env.PORT || "3000");
+  console.log(`[Init] Checking port availability starting from ${preferredPort}...`);
+  
+  findAvailablePort(preferredPort).then(port => {
+    console.log(`[Init] Port ${port} is available`);
 
-      if (port !== preferredPort) {
-        console.log(`[Init] Port ${preferredPort} is busy, using port ${port} instead`);
-      }
+    if (port !== preferredPort) {
+      console.log(`[Init] Port ${preferredPort} is busy, using port ${port} instead`);
+    }
 
-      server.on("error", (err: any) => {
-        console.error(`[Server Error] ${err.message}`);
-        console.error(err?.stack);
-        reject(err);
-      });
-
-      server.on("close", () => {
-        console.log("[Server] Closed");
-      });
-
-      server.on("connection", (conn: any) => {
-        console.log(`[Server] New connection from ${conn.remoteAddress}:${conn.remotePort}`);
-      });
-
-      console.log(`[Init] Calling server.listen(${port}, 127.0.0.1)...`);
-      server.listen(port, "127.0.0.1", () => {
-        console.log(`Server running on http://localhost:${port}/`);
-        // NEVER resolve - keep the promise pending so the process doesn't exit
-      });
-    }).catch(err => {
-      console.error(`[Port Error] ${err?.message || String(err)}`);
+    server.on("error", (err: any) => {
+      console.error(`[Server Error] ${err.message}`);
       console.error(err?.stack);
-      reject(err);
     });
+
+    server.on("close", () => {
+      console.log("[Server] Closed");
+    });
+
+    server.on("connection", (conn: any) => {
+      console.log(`[Server] New connection from ${conn.remoteAddress}:${conn.remotePort}`);
+    });
+
+    console.log(`[Init] Calling server.listen(${port}, 127.0.0.1)...`);
+    server.listen(port, "127.0.0.1", () => {
+      console.log(`Server running on http://localhost:${port}/`);
+      // Never resolve - keep the promise hanging forever
+      // This ensures the process never exits
+    });
+  }).catch(err => {
+    console.error(`[Port Error] ${err?.message || String(err)}`);
+    console.error(err?.stack);
   });
 }
 
 startServer();
+
+startServer();
+
 // Keep the process alive - this prevents Node from exiting
 setInterval(() => {
   // Empty interval just to keep the process alive
